@@ -1,0 +1,7 @@
+package com.itssum.domain.item.repository;
+
+import com.itssum.domain.item.entity.Region;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface RegionRepository extends JpaRepository<Region, Long> {
+}
