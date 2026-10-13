@@ -44,7 +44,7 @@
 
 ## ERD
 
-![ERD](docs/images/erd.png)
+![ERD](docs/images/erd/ITSSUM.png)
 
 
 
