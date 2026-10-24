@@ -39,7 +39,8 @@
 | 기타 | Validation, Java Mail Sender, Lombok |
 | Build | Gradle (Groovy) |
 | 배포 | GitHub Actions, Docker, AWS EC2 · RDS |
-| 예정 | AWS S3 (이미지), FCM (푸시), springdoc (Swagger) |
+| API 문서 | springdoc-openapi (Swagger UI) |
+| 예정 | AWS S3 (이미지), FCM (푸시) |
 
 <br>
 
@@ -164,7 +165,11 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 
 ## API 명세
 
-API 명세는 노션에서 관리하고 있습니다. springdoc을 붙이면 Swagger 주소를 여기에 추가할 예정입니다.
+API 명세는 노션에서 관리하고, 실제 요청·응답은 Swagger UI에서 확인합니다.
+
+- 로컬: http://localhost:8080/swagger-ui.html
+- 배포 서버: `http://<EC2 주소>/swagger-ui.html` (도메인 연결 후 주소 갱신 예정)
+- JWT 적용 후에는 우측 상단 **Authorize**에 액세스 토큰을 넣고 호출합니다.
 
 - REST: `/api/{리소스 복수형}` 형태, 내 정보는 `/me`로 접근 (예: `GET /api/donors/me/donation-items`)
 - 상태 변경은 `PATCH /api/{리소스}/{id}/{동작}` (예: `PATCH /api/needed-items/{id}/close`)
