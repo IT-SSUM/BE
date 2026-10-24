@@ -33,11 +33,12 @@
 |---|---|
 | Language | Java 21 |
 | Framework | Spring Boot 4.1.1, Spring MVC |
-| DB | MySQL 8.0, Spring Data JPA (Hibernate) |
+| DB | MySQL 8.4, Spring Data JPA (Hibernate) |
 | 인증 | Spring Security (JWT 적용 예정) |
 | 실시간 | Spring WebSocket + STOMP |
 | 기타 | Validation, Java Mail Sender, Lombok |
 | Build | Gradle (Groovy) |
+| 배포 | GitHub Actions, Docker, AWS EC2 · RDS |
 | 예정 | AWS S3 (이미지), FCM (푸시), springdoc (Swagger) |
 
 <br>
@@ -129,7 +130,7 @@ src/main/java/com/itssum
 
 ## 로컬 실행
 
-MySQL 8.0에 `itssum` 스키마를 먼저 만들어 두고, DB 접속 정보는 환경변수로 넘깁니다. 접속 정보는 커밋하지 않습니다.
+MySQL 8.4에 `itssum` 스키마를 먼저 만들어 두고, DB 접속 정보는 환경변수로 넘깁니다. 접속 정보는 커밋하지 않습니다.
 
 ```bash
 export DB_URL="jdbc:mysql://localhost:3306/itssum?serverTimezone=Asia/Seoul"
@@ -140,6 +141,24 @@ export DB_PASSWORD=비밀번호
 ```
 
 IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같은 값을 넣으면 됩니다.
+
+<br>
+
+## 배포
+
+수동 배포는 하지 않습니다. `main`에 머지되면 GitHub Actions가 EC2에 배포합니다.
+
+| 워크플로우 | 실행 시점 | 하는 일 |
+|---|---|---|
+| CI (`.github/workflows/ci.yml`) | `develop`, `main` 대상 PR | MySQL 8.4 컨테이너를 띄워 빌드·테스트 |
+| CD (`.github/workflows/cd.yml`) | `main` push, Actions 탭 수동 실행 | 이미지 빌드 → Docker Hub push → EC2에서 컨테이너 교체 → `/actuator/health` 확인 |
+
+- 인프라는 EC2(Ubuntu 24.04) 한 대와 RDS MySQL 8.4입니다. EC2의 호스트 Nginx가 80 → `127.0.0.1:8080`으로 프록시하고, 초기 세팅 스크립트는 `docs/infra/ec2-user-data.sh`에 있습니다.
+- 비밀값은 GitHub Secrets에만 둡니다. CD가 배포할 때마다 EC2의 `.env`를 새로 만들기 때문에 EC2에서 `.env`를 직접 고치면 다음 배포에서 덮어써집니다.
+- 환경변수를 새로 추가할 때는 GitHub Secrets 등록과 `cd.yml`의 `.env` 블록 수정을 같이 해야 합니다.
+- 이미지 태그는 커밋 SHA입니다. 롤백은 Actions에서 이전 CD 실행을 Re-run 하면 됩니다.
+
+필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
 
 <br>
 
