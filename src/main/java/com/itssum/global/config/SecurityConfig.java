@@ -13,6 +13,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+    private static final String[] SWAGGER_PATHS = {
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/**"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -23,6 +29,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // CD 배포 헬스체크. JWT 적용 후에도 인증 없이 열어 둔다.
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(SWAGGER_PATHS).permitAll()
                         // TODO: JWT 적용 시 인증이 필요한 경로를 제한한다. 지금은 전체 허용.
                         .anyRequest().permitAll());
         return http.build();
