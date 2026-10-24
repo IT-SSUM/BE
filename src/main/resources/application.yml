@@ -17,3 +17,10 @@ spring:
       hibernate:
         jdbc:
           time_zone: Asia/Seoul
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # CD 배포 확인용. health 외 actuator 엔드포인트는 노출하지 않는다.
+        include: health

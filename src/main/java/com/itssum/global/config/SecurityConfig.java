@@ -20,8 +20,11 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // TODO: JWT 적용 시 인증이 필요한 경로를 제한한다. 지금은 전체 허용.
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+                .authorizeHttpRequests(auth -> auth
+                        // CD 배포 헬스체크. JWT 적용 후에도 인증 없이 열어 둔다.
+                        .requestMatchers("/actuator/health").permitAll()
+                        // TODO: JWT 적용 시 인증이 필요한 경로를 제한한다. 지금은 전체 허용.
+                        .anyRequest().permitAll());
         return http.build();
     }
 }
