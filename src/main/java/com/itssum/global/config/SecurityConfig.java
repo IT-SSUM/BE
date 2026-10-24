@@ -2,6 +2,7 @@ package com.itssum.global.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -30,6 +31,8 @@ public class SecurityConfig {
                         // CD 배포 헬스체크. JWT 적용 후에도 인증 없이 열어 둔다.
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(SWAGGER_PATHS).permitAll()
+                        // 기준 데이터 조회는 비로그인 상태(회원가입·둘러보기)에서도 쓴다
+                        .requestMatchers(HttpMethod.GET, "/api/item-conditions").permitAll()
                         // TODO: JWT 적용 시 인증이 필요한 경로를 제한한다. 지금은 전체 허용.
                         .anyRequest().permitAll());
         return http.build();
