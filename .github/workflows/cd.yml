@@ -1,0 +1,99 @@
+name: CD
+
+# main 에 push(= PR 머지) 되면 이미지 빌드 → Docker Hub push → EC2 배포
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # Actions 탭에서 수동 실행도 허용 (재배포용)
+
+# 배포가 겹치면 EC2 컨테이너 교체가 꼬인다 → 한 번에 하나씩, 진행 중인 배포는 끊지 않는다
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 소스 체크아웃
+        uses: actions/checkout@v5
+
+      - name: Docker Hub 로그인
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Buildx 설정
+        uses: docker/setup-buildx-action@v3
+
+      - name: 이미지 빌드 & 푸시
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/itssum-be:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/itssum-be:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: docker-compose.yml 전송
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: docker-compose.yml
+          target: ~/itssum-app
+
+      - name: EC2 배포
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/itssum-app
+
+            # 시크릿으로 .env 생성 (compose 가 이미지 태그·DB 설정을 여기서 읽음)
+            # 이미지는 latest 가 아니라 커밋 SHA 로 고정한다 → 이전 CD 실행을 Re-run 하면 그 버전으로 롤백된다.
+            # EC2 의 .env 를 직접 고치면 다음 배포에 이 블록이 덮어써서 되돌아온다.
+            cat > .env <<'EOF'
+            DOCKER_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/itssum-be:${{ github.sha }}
+            DB_URL=${{ secrets.DB_URL }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            EOF
+            chmod 600 .env
+
+            # 시크릿 누락은 빈 값으로 조용히 통과한다 → 컨테이너 띄우기 전에 여기서 끊는다.
+            for required in DB_URL DB_USERNAME DB_PASSWORD; do
+              if ! grep -q "^${required}=." .env; then
+                echo "❌ 필수 시크릿이 비어 있습니다: ${required}"
+                exit 1
+              fi
+            done
+
+            # private 이미지 pull 위해 EC2 도 Docker Hub 로그인
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            docker compose pull
+            docker compose config --quiet
+            docker compose up -d
+            # SHA 태그라 이전 이미지가 dangling 이 되지 않는다 → 컨테이너가 안 쓰는 이미지를 모두 정리
+            docker image prune -af
+
+            # 기동 확인 (최대 120초 대기). health 는 DB 연결까지 확인한다.
+            for i in $(seq 1 24); do
+              if curl -sf http://localhost:8080/actuator/health > /dev/null; then
+                echo "✅ 배포 성공: 앱이 응답합니다."
+                exit 0
+              fi
+              echo "기동 대기 중... ($i/24)"
+              sleep 5
+            done
+            echo "❌ 앱이 120초 내 응답하지 않음. 로그 확인:"
+            docker compose logs --tail=100
+            exit 1

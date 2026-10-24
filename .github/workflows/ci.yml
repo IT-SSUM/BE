@@ -1,0 +1,48 @@
+name: CI
+
+# develop / main 으로의 PR 시 테스트 + 빌드 검증만 수행 (배포 X)
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # @SpringBootTest 가 실제 DB 연결을 요구하므로 운영과 같은 MySQL 8.4 를 띄운다
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: itssum
+        ports:
+          - 3306:3306
+        # -h 127.0.0.1 로 TCP 확인 → 초기화용 임시 서버(소켓 전용)가 아닌 실제 서버가 뜬 뒤에 통과한다
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ptest"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_URL: jdbc:mysql://127.0.0.1:3306/itssum?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      DB_USERNAME: root
+      DB_PASSWORD: test
+
+    steps:
+      - name: 소스 체크아웃
+        uses: actions/checkout@v5
+
+      - name: JDK 21 설정
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: gradlew 실행 권한
+        run: chmod +x gradlew
+
+      - name: 빌드 & 테스트
+        run: ./gradlew clean build

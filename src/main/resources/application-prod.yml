@@ -1,0 +1,5 @@
+# 운영(EC2) 전용 설정. CD가 SPRING_PROFILES_ACTIVE=prod 로 띄운다.
+# 공통 값은 application.yml, 비밀값(DB_* 등)은 CD가 만든 .env 로 주입된다.
+server:
+  # 호스트 Nginx 뒤에서 X-Forwarded-* 헤더로 원래 요청의 IP·프로토콜을 인식한다
+  forward-headers-strategy: native
