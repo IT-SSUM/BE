@@ -51,7 +51,7 @@ class ChatQueryServiceTest {
         ChatParticipant participant = ChatParticipant.builder()
                 .chatRoom(mock(ChatRoom.class)).user(mock(User.class)).joinedAt(LocalDateTime.now()).build();
         when(messages.findByIdAndChatRoom_Id(5L, 1L)).thenReturn(Optional.of(mock(ChatMessage.class)));
-        when(participants.findByChatRoom_IdAndUser_Id(1L, 10L)).thenReturn(Optional.of(participant));
+        when(participants.findForUpdate(1L, 10L)).thenReturn(Optional.of(participant));
 
         service.markRead(1L, 10L, 5L);
         service.markRead(1L, 10L, 5L);

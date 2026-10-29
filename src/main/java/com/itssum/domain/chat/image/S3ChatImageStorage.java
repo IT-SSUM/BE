@@ -49,7 +49,9 @@ public class S3ChatImageStorage implements ChatImageStorage {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_IMAGE_NOT_UPLOADED));
         if (object.size() == null || object.size() == 0 || object.size() > MAX_IMAGE_BYTES
                 || !IMAGE_TYPES.contains(object.contentType())) {
-            storage.delete(objectKey);
+            if (object.eTag() != null && !object.eTag().isBlank()) {
+                storage.delete(objectKey, object.eTag());
+            }
             throw new BusinessException(ErrorCode.CHAT_IMAGE_NOT_UPLOADED);
         }
     }

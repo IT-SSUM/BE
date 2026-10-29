@@ -42,12 +42,17 @@ public class ChatMessageService {
                 .messageType(request.messageType())
                 .content(content)
                 .build());
-        room.updateLastMessage(request.messageType() == MessageType.IMAGE ? "[사진]" : content,
+        room.updateLastMessage(request.messageType() == MessageType.IMAGE ? "[사진]" : preview(content),
                 message.getCreatedAt());
         String displayContent = imageStorage == null ? content : imageStorage.presignRead(content);
         ChatMessageResponse response = ChatMessageResponse.from(message, displayContent);
         eventPublisher.publishEvent(new ChatMessageSentEvent(response));
         return response;
+    }
+
+    private String preview(String content) {
+        int codePoints = Math.min(content.codePointCount(0, content.length()), 255);
+        return content.substring(0, content.offsetByCodePoints(0, codePoints));
     }
 
     private void validate(SendChatMessageRequest request) {

@@ -48,7 +48,7 @@ public class S3ObjectStorage {
         try {
             HeadObjectResponse head = s3Client.headObject(HeadObjectRequest.builder()
                     .bucket(bucket).key(key).build());
-            return Optional.of(new StoredObjectMetadata(head.contentLength(), head.contentType()));
+            return Optional.of(new StoredObjectMetadata(head.contentLength(), head.contentType(), head.eTag()));
         } catch (S3Exception e) {
             if (e.statusCode() == 404) {
                 return Optional.empty();
@@ -57,10 +57,17 @@ public class S3ObjectStorage {
         }
     }
 
-    public void delete(String key) {
-        s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+    public void delete(String key, String eTag) {
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket).key(key).ifMatch(eTag).build());
+        } catch (S3Exception e) {
+            if (e.statusCode() != 412 && e.statusCode() != 404) {
+                throw e;
+            }
+        }
     }
 
-    public record StoredObjectMetadata(Long size, String contentType) {
+    public record StoredObjectMetadata(Long size, String contentType, String eTag) {
     }
 }

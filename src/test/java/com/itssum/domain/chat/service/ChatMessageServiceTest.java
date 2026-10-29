@@ -70,6 +70,19 @@ class ChatMessageServiceTest {
     }
 
     @Test
+    void longTextKeepsFullMessageAndTruncatesPreviewWithoutSplittingEmoji() {
+        String content = "a".repeat(254) + "🌱" + "끝";
+
+        ChatMessageResponse result = service.send(1L, user,
+                new SendChatMessageRequest(MessageType.TEXT, content));
+
+        assertEquals(content, result.content());
+        assertEquals("a".repeat(254) + "🌱", room.getLastMessageContent());
+        assertEquals(255, room.getLastMessageContent().codePointCount(0,
+                room.getLastMessageContent().length()));
+    }
+
+    @Test
     void completedRoomIsReadOnly() {
         when(accessService.requireWritableRoom(1L, 10L))
                 .thenThrow(new BusinessException(ErrorCode.CHAT_READ_ONLY));

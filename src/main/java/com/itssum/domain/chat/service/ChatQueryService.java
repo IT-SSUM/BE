@@ -70,7 +70,7 @@ public class ChatQueryService {
         }
         messageRepository.findByIdAndChatRoom_Id(lastReadMessageId, roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_MESSAGE_NOT_FOUND));
-        ChatParticipant participant = participantRepository.findByChatRoom_IdAndUser_Id(roomId, userId)
+        ChatParticipant participant = participantRepository.findForUpdate(roomId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_NOT_PARTICIPANT));
         Long previous = participant.getLastReadMessageId();
         participant.markReadThrough(lastReadMessageId);

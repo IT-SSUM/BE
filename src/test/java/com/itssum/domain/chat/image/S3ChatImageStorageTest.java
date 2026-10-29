@@ -45,13 +45,13 @@ class S3ChatImageStorageTest {
     @Test
     void uploadedImageMustBeWithinSizeLimit() {
         String key = "chat/42/11111111-1111-1111-1111-111111111111.jpg";
-        when(storage.find(key)).thenReturn(Optional.of(new StoredObjectMetadata(11L * 1024 * 1024, "image/jpeg")));
+        when(storage.find(key)).thenReturn(Optional.of(new StoredObjectMetadata(11L * 1024 * 1024, "image/jpeg", "etag-1")));
 
         BusinessException error = assertThrows(BusinessException.class,
                 () -> images.verifyUploaded(42L, key));
 
         assertEquals(ErrorCode.CHAT_IMAGE_NOT_UPLOADED, error.getErrorCode());
         verify(storage).find(key);
-        verify(storage).delete(key);
+        verify(storage).delete(key, "etag-1");
     }
 }
