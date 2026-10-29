@@ -28,7 +28,7 @@ public class ChatMessageService {
 
     @Transactional
     public ChatMessageResponse send(Long roomId, User sender, SendChatMessageRequest request) {
-        ChatRoom room = accessService.requireWritableRoom(roomId, sender.getId());
+        ChatRoom room = accessService.requireWritableRoomForSend(roomId, sender.getId());
         validate(request);
         String content = request.content().trim();
         ChatImageStorage imageStorage = null;

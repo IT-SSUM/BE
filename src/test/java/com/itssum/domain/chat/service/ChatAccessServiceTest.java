@@ -3,6 +3,7 @@ package com.itssum.domain.chat.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.itssum.domain.chat.entity.ChatRoom;
@@ -29,6 +30,19 @@ class ChatAccessServiceTest {
                 () -> access.requireRoomForParticipant(1L, 10L));
 
         assertEquals(ErrorCode.CHAT_NOT_PARTICIPANT, error.getErrorCode());
+    }
+
+    @Test
+    void sendingLocksRoomAndChecksParticipantAndStatus() {
+        Match match = mock(Match.class);
+        ChatRoom room = mock(ChatRoom.class);
+        when(room.getMatch()).thenReturn(match);
+        when(match.getStatus()).thenReturn(MatchStatus.RESERVED);
+        when(rooms.findByIdForUpdate(1L)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoom_IdAndUser_Id(1L, 10L)).thenReturn(true);
+
+        assertEquals(room, access.requireWritableRoomForSend(1L, 10L));
+        verify(rooms).findByIdForUpdate(1L);
     }
 
     @Test

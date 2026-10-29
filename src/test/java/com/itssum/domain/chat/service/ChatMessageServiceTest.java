@@ -48,7 +48,7 @@ class ChatMessageServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(user, "id", 10L);
         ReflectionTestUtils.setField(room, "id", 1L);
-        when(accessService.requireWritableRoom(1L, 10L)).thenReturn(room);
+        when(accessService.requireWritableRoomForSend(1L, 10L)).thenReturn(room);
         when(match.getStatus()).thenReturn(MatchStatus.RESERVED);
         when(messageRepository.saveAndFlush(any(ChatMessage.class))).thenAnswer(invocation -> {
             ChatMessage message = invocation.getArgument(0);
@@ -84,7 +84,7 @@ class ChatMessageServiceTest {
 
     @Test
     void completedRoomIsReadOnly() {
-        when(accessService.requireWritableRoom(1L, 10L))
+        when(accessService.requireWritableRoomForSend(1L, 10L))
                 .thenThrow(new BusinessException(ErrorCode.CHAT_READ_ONLY));
 
         BusinessException error = assertThrows(BusinessException.class,
@@ -96,7 +96,7 @@ class ChatMessageServiceTest {
 
     @Test
     void nonParticipantCannotSend() {
-        when(accessService.requireWritableRoom(1L, 10L))
+        when(accessService.requireWritableRoomForSend(1L, 10L))
                 .thenThrow(new BusinessException(ErrorCode.CHAT_NOT_PARTICIPANT));
 
         BusinessException error = assertThrows(BusinessException.class,

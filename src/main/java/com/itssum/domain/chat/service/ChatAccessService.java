@@ -27,9 +27,22 @@ public class ChatAccessService {
         return room;
     }
 
+    @Transactional
+    public ChatRoom requireWritableRoomForSend(Long roomId, Long userId) {
+        ChatRoom room = chatRoomRepository.findByIdForUpdate(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+        if (!chatParticipantRepository.existsByChatRoom_IdAndUser_Id(roomId, userId)) {
+            throw new BusinessException(ErrorCode.CHAT_NOT_PARTICIPANT);
+        }
+        return requireWritableStatus(room);
+    }
+
     @Transactional(readOnly = true)
     public ChatRoom requireWritableRoom(Long roomId, Long userId) {
-        ChatRoom room = requireRoomForParticipant(roomId, userId);
+        return requireWritableStatus(requireRoomForParticipant(roomId, userId));
+    }
+
+    private ChatRoom requireWritableStatus(ChatRoom room) {
         MatchStatus status = room.getMatch().getStatus();
         if (status != MatchStatus.RESERVED && status != MatchStatus.SHARING) {
             throw new BusinessException(ErrorCode.CHAT_READ_ONLY);
