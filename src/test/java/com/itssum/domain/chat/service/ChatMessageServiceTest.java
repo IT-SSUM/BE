@@ -3,6 +3,7 @@ package com.itssum.domain.chat.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -25,6 +26,7 @@ import com.itssum.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -115,6 +117,22 @@ class ChatMessageServiceTest {
     }
 
     @Test
+    void imageIsNotSavedIfRoomBecomesReadOnlyAfterUploadCheck() {
+        ChatImageStorage storage = mock(ChatImageStorage.class);
+        when(imageStorageProvider.getIfAvailable()).thenReturn(storage);
+        when(accessService.requireWritableRoomForSend(1L, 10L))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_READ_ONLY));
+        String key = "chat/1/11111111-1111-1111-1111-111111111111.jpg";
+
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> service.send(1L, user, new SendChatMessageRequest(MessageType.IMAGE, key)));
+
+        assertEquals(ErrorCode.CHAT_READ_ONLY, error.getErrorCode());
+        verify(storage).verifyUploaded(1L, key);
+        verify(messageRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void imageMessageChecksUploadAndReturnsTemporaryReadUrl() {
         ChatImageStorage storage = mock(ChatImageStorage.class);
         when(imageStorageProvider.getIfAvailable()).thenReturn(storage);
@@ -124,7 +142,11 @@ class ChatMessageServiceTest {
         ChatMessageResponse result = service.send(1L, user,
                 new SendChatMessageRequest(MessageType.IMAGE, key));
 
-        verify(storage).verifyUploaded(1L, key);
+        InOrder order = inOrder(accessService, storage, messageRepository);
+        order.verify(accessService).requireWritableRoom(1L, 10L);
+        order.verify(storage).verifyUploaded(1L, key);
+        order.verify(accessService).requireWritableRoomForSend(1L, 10L);
+        order.verify(messageRepository).saveAndFlush(any(ChatMessage.class));
         assertEquals("https://example.com/signed-image", result.content());
         assertEquals("[사진]", room.getLastMessageContent());
     }

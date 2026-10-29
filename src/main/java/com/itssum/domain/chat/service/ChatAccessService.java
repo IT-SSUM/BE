@@ -8,6 +8,7 @@ import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -37,7 +38,7 @@ public class ChatAccessService {
         return requireWritableStatus(room);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public ChatRoom requireWritableRoom(Long roomId, Long userId) {
         return requireWritableStatus(requireRoomForParticipant(roomId, userId));
     }
