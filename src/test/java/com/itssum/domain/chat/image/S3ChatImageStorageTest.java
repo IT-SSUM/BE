@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
-import com.itssum.global.storage.S3ObjectStorage;
-import com.itssum.global.storage.S3ObjectStorage.StoredObjectMetadata;
+import com.itssum.global.infra.s3.S3ObjectStorage;
+import com.itssum.global.infra.s3.S3ObjectStorage.StoredObjectMetadata;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +28,7 @@ class S3ChatImageStorageTest {
 
         assertEquals("https://example.com/upload", result.uploadUrl());
         assertEquals("image/png", result.requiredHeaders().get("Content-Type"));
+        assertEquals("*", result.requiredHeaders().get("If-None-Match"));
         assertEquals(true, result.objectKey().matches("chat/42/[0-9a-f-]{36}\\.png"));
     }
 
@@ -51,5 +52,6 @@ class S3ChatImageStorageTest {
 
         assertEquals(ErrorCode.CHAT_IMAGE_NOT_UPLOADED, error.getErrorCode());
         verify(storage).find(key);
+        verify(storage).delete(key);
     }
 }

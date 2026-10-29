@@ -58,6 +58,34 @@ class ChatStompInterceptorTest {
     }
 
     @Test
+    void otherSubscriptionsAreRejected() {
+        for (String destination : new String[] {null, "/topic/other", "/topic/chat-rooms/42/other"}) {
+            StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+            headers.setDestination(destination);
+            Message<byte[]> message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+
+            assertThrows(IllegalArgumentException.class, () -> interceptor.preSend(message, channel));
+        }
+    }
+
+    @Test
+    void sendOnlyAllowsApplicationDestinations() {
+        for (String destination : new String[] {null, "/topic/chat-rooms/42"}) {
+            StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
+            headers.setDestination(destination);
+            Message<byte[]> message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+
+            assertThrows(IllegalArgumentException.class, () -> interceptor.preSend(message, channel));
+        }
+
+        StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
+        headers.setDestination("/app/chat-rooms/42/messages");
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+
+        interceptor.preSend(message, channel);
+    }
+
+    @Test
     void connectionWithoutPrincipalIsRejected() {
         when(userResolver.requireUser(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.CONNECT);

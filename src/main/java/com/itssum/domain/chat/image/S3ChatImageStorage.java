@@ -2,8 +2,8 @@ package com.itssum.domain.chat.image;
 
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
-import com.itssum.global.storage.S3ObjectStorage;
-import com.itssum.global.storage.S3ObjectStorage.StoredObjectMetadata;
+import com.itssum.global.infra.s3.S3ObjectStorage;
+import com.itssum.global.infra.s3.S3ObjectStorage.StoredObjectMetadata;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-/** 채팅 전용 파일 형식과 채팅방 key 규칙. 실제 S3 처리는 global.storage에 맡긴다. */
+/** 채팅 전용 파일 형식과 채팅방 key 규칙. 실제 S3 처리는 global.infra.s3에 맡긴다. */
 @Component
 @ConditionalOnProperty(prefix = "storage.s3", name = "bucket")
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class S3ChatImageStorage implements ChatImageStorage {
         };
         String key = "chat/" + chatRoomId + "/" + UUID.randomUUID() + "." + extension;
         return new PresignedChatImageUpload(key, storage.presignUpload(key, contentType),
-                Map.of("Content-Type", contentType));
+                Map.of("Content-Type", contentType, "If-None-Match", "*"));
     }
 
     @Override
@@ -49,6 +49,7 @@ public class S3ChatImageStorage implements ChatImageStorage {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_IMAGE_NOT_UPLOADED));
         if (object.size() == null || object.size() == 0 || object.size() > MAX_IMAGE_BYTES
                 || !IMAGE_TYPES.contains(object.contentType())) {
+            storage.delete(objectKey);
             throw new BusinessException(ErrorCode.CHAT_IMAGE_NOT_UPLOADED);
         }
     }

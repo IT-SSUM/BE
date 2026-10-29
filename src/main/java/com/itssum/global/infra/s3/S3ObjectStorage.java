@@ -1,4 +1,4 @@
-package com.itssum.global.storage;
+package com.itssum.global.infra.s3;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -32,7 +33,7 @@ public class S3ObjectStorage {
 
     public String presignUpload(String key, String contentType) {
         PutObjectRequest put = PutObjectRequest.builder()
-                .bucket(bucket).key(key).contentType(contentType).build();
+                .bucket(bucket).key(key).contentType(contentType).ifNoneMatch("*").build();
         return presigner.presignPutObject(PutObjectPresignRequest.builder()
                 .signatureDuration(URL_LIFETIME).putObjectRequest(put).build()).url().toString();
     }
@@ -54,6 +55,10 @@ public class S3ObjectStorage {
             }
             throw e;
         }
+    }
+
+    public void delete(String key) {
+        s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
     }
 
     public record StoredObjectMetadata(Long size, String contentType) {

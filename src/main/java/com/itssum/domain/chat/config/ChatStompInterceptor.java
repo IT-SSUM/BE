@@ -2,7 +2,6 @@ package com.itssum.domain.chat.config;
 
 import com.itssum.domain.chat.service.ChatAccessService;
 import com.itssum.domain.chat.service.ChatUserResolver;
-import java.security.Principal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -29,14 +28,19 @@ public class ChatStompInterceptor implements ChannelInterceptor {
             userResolver.requireUser(headers.getUser());
         } else if (command == StompCommand.SUBSCRIBE) {
             String destination = headers.getDestination();
-            if (destination != null && destination.startsWith("/topic/chat-rooms/")) {
-                Matcher matcher = CHAT_TOPIC.matcher(destination);
-                if (!matcher.matches()) {
-                    throw new IllegalArgumentException("잘못된 채팅 구독 경로입니다.");
-                }
-                Principal principal = headers.getUser();
-                Long userId = userResolver.requireUser(principal).getId();
-                accessService.requireRoomForParticipant(Long.valueOf(matcher.group(1)), userId);
+            if (destination == null) {
+                throw new IllegalArgumentException("잘못된 채팅 구독 경로입니다.");
+            }
+            Matcher matcher = CHAT_TOPIC.matcher(destination);
+            if (!matcher.matches()) {
+                throw new IllegalArgumentException("잘못된 채팅 구독 경로입니다.");
+            }
+            Long userId = userResolver.requireUser(headers.getUser()).getId();
+            accessService.requireRoomForParticipant(Long.valueOf(matcher.group(1)), userId);
+        } else if (command == StompCommand.SEND) {
+            String destination = headers.getDestination();
+            if (destination == null || !destination.startsWith("/app/")) {
+                throw new IllegalArgumentException("잘못된 채팅 전송 경로입니다.");
             }
         }
         return message;

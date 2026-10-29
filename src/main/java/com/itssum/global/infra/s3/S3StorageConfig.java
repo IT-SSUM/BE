@@ -1,4 +1,4 @@
-package com.itssum.global.storage;
+package com.itssum.global.infra.s3;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
