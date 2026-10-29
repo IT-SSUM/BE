@@ -57,4 +57,10 @@ public class ChatParticipant {
         this.user = user;
         this.joinedAt = joinedAt;
     }
+
+    public void markReadThrough(Long messageId) {
+        if (lastReadMessageId == null || messageId > lastReadMessageId) {
+            lastReadMessageId = messageId;
+        }
+    }
 }
