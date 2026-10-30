@@ -14,6 +14,7 @@
 --   + notification_settings   : GET/PATCH /api/users/me/notification-settings
 --   + push_tokens             : POST/DELETE /api/users/me/push-tokens (후순위)
 --   + password_reset_tokens   : Figma A13·A14 비밀번호 재설정(메일 링크)
+--   + refresh_tokens          : POST /api/auth/login, /tokens/refresh, /logout (기기별 리프레시 토큰)
 --   * donors        : birth_date 필수, region_id(활동 지역·선택), introduction(기부자 소개) 추가
 --   * organizations : introduction(기관 소개) 추가
 --   * donation_items: pickup_address(물품 상세 위치) 추가
@@ -321,6 +322,18 @@ CREATE TABLE `password_reset_tokens` (
   PRIMARY KEY (`reset_token_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='비밀번호 재설정 토큰';
 
+-- POST /api/auth/login, /api/auth/tokens/refresh, /api/auth/logout
+-- 로그인 1회(기기)당 1행. 원문 대신 SHA-256 해시만 저장, 재발급 시 행을 교체(rotation)
+-- 만료 행은 그 회원이 다시 로그인할 때 user_id 로 정리
+CREATE TABLE `refresh_tokens` (
+  `refresh_token_id` BIGINT   NOT NULL AUTO_INCREMENT COMMENT '리프레시 토큰 ID',
+  `user_id`          BIGINT   NOT NULL COMMENT '회원 ID',
+  `token_hash`       CHAR(64) NOT NULL COMMENT '리프레시 토큰 SHA-256 해시',
+  `expires_at`       DATETIME NOT NULL COMMENT '만료 일시',
+  `created_at`       DATETIME NOT NULL COMMENT '발급 일시',
+  PRIMARY KEY (`refresh_token_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='리프레시 토큰';
+
 
 -- =====================================================================
 -- [2] FOREIGN KEYS
@@ -366,6 +379,7 @@ ALTER TABLE `notifications`         ADD CONSTRAINT `FK_users_TO_notifications`  
 ALTER TABLE `notification_settings` ADD CONSTRAINT `FK_users_TO_notification_settings` FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 ALTER TABLE `push_tokens`           ADD CONSTRAINT `FK_users_TO_push_tokens`           FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 ALTER TABLE `password_reset_tokens` ADD CONSTRAINT `FK_users_TO_password_reset_tokens` FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
+ALTER TABLE `refresh_tokens`        ADD CONSTRAINT `FK_users_TO_refresh_tokens`        FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 
 
 -- =====================================================================
@@ -382,6 +396,7 @@ ALTER TABLE `organization_recommendations`  ADD CONSTRAINT `UQ_org_rec_item_need
 ALTER TABLE `donation_item_recommendations` ADD CONSTRAINT `UQ_item_rec_needed_item` UNIQUE (`needed_item_id`, `donation_item_id`);
 ALTER TABLE `push_tokens`       ADD CONSTRAINT `UQ_push_tokens_token`             UNIQUE (`token`);
 ALTER TABLE `password_reset_tokens` ADD CONSTRAINT `UQ_password_reset_tokens_hash` UNIQUE (`token_hash`);
+ALTER TABLE `refresh_tokens`        ADD CONSTRAINT `UQ_refresh_tokens_hash`        UNIQUE (`token_hash`);
 
 CREATE INDEX `IDX_donation_items_status_created` ON `donation_items` (`status`, `created_at`);
 CREATE INDEX `IDX_needed_items_status_created`   ON `needed_items` (`status`, `created_at`);
