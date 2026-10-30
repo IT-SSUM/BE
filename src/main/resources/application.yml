@@ -18,6 +18,19 @@ spring:
         jdbc:
           time_zone: Asia/Seoul
 
+  # 인증 메일 발송 (Gmail SMTP). 비밀번호는 Gmail 앱 비밀번호, 둘 다 환경변수로만 받는다
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
 management:
   endpoints:
     web:
@@ -38,3 +51,12 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:30m}
   refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:14d}
+
+auth:
+  # 회원가입 때 terms_agreements.terms_version 에 기록하는 약관 버전
+  terms-version: v1
+  email-verification:
+    code-ttl: 5m
+    resend-cooldown: 60s
+    max-attempts: 5
+    token-ttl: 30m
