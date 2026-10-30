@@ -32,3 +32,9 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
+
+jwt:
+  # HS256 서명 키. 환경변수로만 받는다 (32바이트 이상, 커밋 금지)
+  secret: ${JWT_SECRET}
+  access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:30m}
+  refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:14d}
