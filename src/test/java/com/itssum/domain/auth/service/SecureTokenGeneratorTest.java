@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 
 class SecureTokenGeneratorTest {
@@ -28,6 +29,17 @@ class SecureTokenGeneratorTest {
     void verificationCodeIsSixDigits() {
         for (int i = 0; i < 100; i++) {
             assertTrue(generator.generateVerificationCode().matches("\\d{6}"));
+        }
+    }
+
+    @Test
+    void verificationCodeUsesAsciiDigitsRegardlessOfDefaultLocale() {
+        Locale original = Locale.getDefault(Locale.Category.FORMAT);
+        Locale.setDefault(Locale.Category.FORMAT, Locale.forLanguageTag("th-TH-u-nu-thai"));
+        try {
+            assertTrue(generator.generateVerificationCode().matches("[0-9]{6}"));
+        } finally {
+            Locale.setDefault(Locale.Category.FORMAT, original);
         }
     }
 }

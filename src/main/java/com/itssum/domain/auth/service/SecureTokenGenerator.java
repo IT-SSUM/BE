@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,6 +37,6 @@ public class SecureTokenGenerator {
     }
 
     public String generateVerificationCode() {
-        return String.format("%06d", random.nextInt(VERIFICATION_CODE_BOUND));
+        return String.format(Locale.ROOT, "%06d", random.nextInt(VERIFICATION_CODE_BOUND));
     }
 }
