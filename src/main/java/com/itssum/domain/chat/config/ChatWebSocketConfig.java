@@ -1,5 +1,6 @@
 package com.itssum.domain.chat.config;
 
+import com.itssum.global.security.StompAuthenticationInterceptor;
 import lombok.RequiredArgsConstructor;
 import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @RequiredArgsConstructor
 public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    private final StompAuthenticationInterceptor stompAuthenticationInterceptor;
     private final ChatStompInterceptor chatStompInterceptor;
 
     @Value("${chat.websocket.allowed-origins:}")
@@ -37,6 +39,7 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(chatStompInterceptor);
+        // JWT 인증이 먼저 세션 사용자를 넣어야 채팅 권한 검사가 그 값을 본다
+        registration.interceptors(stompAuthenticationInterceptor, chatStompInterceptor);
     }
 }

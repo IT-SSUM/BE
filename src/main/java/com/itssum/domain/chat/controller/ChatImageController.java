@@ -6,6 +6,7 @@ import com.itssum.domain.chat.image.PresignedChatImageUpload;
 import com.itssum.domain.chat.service.ChatAccessService;
 import com.itssum.domain.chat.service.ChatUserResolver;
 import com.itssum.global.common.ApiResponse;
+import com.itssum.global.common.SuccessCode;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,6 +45,7 @@ public class ChatImageController {
         if (storage == null) {
             throw new BusinessException(ErrorCode.CHAT_IMAGE_STORAGE_UNAVAILABLE);
         }
-        return ApiResponse.ok(storage.presignUpload(chatRoomId, request.contentType()));
+        return ApiResponse.ok(SuccessCode.CHAT_IMAGE_UPLOAD_URL_ISSUED,
+                storage.presignUpload(chatRoomId, request.contentType()));
     }
 }
