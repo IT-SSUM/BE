@@ -1,10 +1,9 @@
 package com.itssum.domain.item.controller;
 
-import com.itssum.global.config.SecurityConfig;
+import com.itssum.support.SecurityTestConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ItemConditionController.class)
-@Import(SecurityConfig.class)
+@SecurityTestConfig
 class ItemConditionControllerTest {
 
     @Autowired
