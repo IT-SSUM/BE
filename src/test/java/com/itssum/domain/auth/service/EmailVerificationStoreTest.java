@@ -50,6 +50,8 @@ class EmailVerificationStoreTest {
         }
         assertEquals(EXPIRED, store.verifyCode(EMAIL, "000000"));
         assertEquals(EXPIRED, store.verifyCode(EMAIL, "123456"));
+        // 번호를 버려도 재발송 간격은 남는다
+        assertFalse(store.canSend(EMAIL));
     }
 
     @Test

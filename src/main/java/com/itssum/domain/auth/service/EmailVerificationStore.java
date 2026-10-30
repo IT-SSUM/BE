@@ -24,6 +24,7 @@ public class EmailVerificationStore {
     private final AuthProperties.EmailVerification policy;
     private final Ticker ticker;
     private final Cache<String, PendingCode> codes;
+    private final Cache<String, Boolean> recentlySent;
     private final Cache<String, String> verifiedTokens;
 
     @Autowired
@@ -40,6 +41,12 @@ public class EmailVerificationStore {
                 .expireAfterWrite(policy.codeTtl())
                 .maximumSize(MAX_ENTRIES)
                 .build();
+        // 인증번호를 맞히거나 오답으로 버려도 재발송 간격이 유지되도록 발송 기록을 따로 둔다
+        this.recentlySent = Caffeine.newBuilder()
+                .ticker(ticker)
+                .expireAfterWrite(policy.resendCooldown())
+                .maximumSize(MAX_ENTRIES)
+                .build();
         this.verifiedTokens = Caffeine.newBuilder()
                 .ticker(ticker)
                 .expireAfterWrite(policy.tokenTtl())
@@ -49,13 +56,13 @@ public class EmailVerificationStore {
 
     /** 마지막 발송 후 재발송 간격이 지났는지 */
     public boolean canSend(String email) {
-        PendingCode pending = codes.getIfPresent(email);
-        return pending == null || elapsedSince(pending.sentAtNanos()).compareTo(policy.resendCooldown()) >= 0;
+        return recentlySent.getIfPresent(email) == null;
     }
 
     /** 새 인증번호를 저장한다. 이전 번호와 오답 횟수는 버린다. */
     public void saveCode(String email, String code) {
         codes.put(email, new PendingCode(code, ticker.read(), 0));
+        recentlySent.put(email, Boolean.TRUE);
     }
 
     /** 맞으면 번호를 지운다. 최대 오답 횟수에 닿으면 번호를 버리고 EXPIRED 를 돌려준다. */
