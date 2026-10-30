@@ -6,6 +6,7 @@ import com.itssum.domain.chat.dto.response.ChatRoomResponse;
 import com.itssum.domain.chat.service.ChatQueryService;
 import com.itssum.domain.chat.service.ChatUserResolver;
 import com.itssum.global.common.ApiResponse;
+import com.itssum.global.common.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,7 +35,8 @@ public class ChatRoomController {
             description = "참여 중인 채팅방을 최근 메시지 순으로 반환합니다. 상대방·연결된 물품·매칭 상태·안 읽은 메시지 수를 포함합니다.")
     @GetMapping
     public ApiResponse<List<ChatRoomResponse>> list(Principal principal) {
-        return ApiResponse.ok(queryService.list(userResolver.requireUser(principal).getId()));
+        return ApiResponse.ok(SuccessCode.CHAT_ROOMS_FOUND,
+                queryService.list(userResolver.requireUser(principal).getId()));
     }
 
     @Operation(summary = "채팅 메시지 내역 조회",
@@ -47,7 +49,7 @@ public class ChatRoomController {
             @Parameter(description = "조회 개수(1~100, 기본 30)", example = "30")
             @RequestParam(defaultValue = "30") int size,
                                                           Principal principal) {
-        return ApiResponse.ok(queryService.messages(chatRoomId,
+        return ApiResponse.ok(SuccessCode.CHAT_MESSAGES_FOUND, queryService.messages(chatRoomId,
                 userResolver.requireUser(principal).getId(), beforeId, size));
     }
 
@@ -59,6 +61,6 @@ public class ChatRoomController {
                                       @Valid @RequestBody MarkChatReadRequest request,
                                       Principal principal) {
         queryService.markRead(chatRoomId, userResolver.requireUser(principal).getId(), request.lastReadMessageId());
-        return ApiResponse.ok();
+        return ApiResponse.ok(SuccessCode.CHAT_READ_MARKED);
     }
 }

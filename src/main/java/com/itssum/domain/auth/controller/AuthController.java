@@ -12,6 +12,7 @@ import com.itssum.domain.auth.dto.response.EmailVerificationSendResponse;
 import com.itssum.domain.auth.service.AuthService;
 import com.itssum.domain.auth.service.EmailVerificationService;
 import com.itssum.global.common.ApiResponse;
+import com.itssum.global.common.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,7 +41,7 @@ public class AuthController {
     @PostMapping("/email-verifications")
     public ApiResponse<EmailVerificationSendResponse> sendEmailVerification(
             @Valid @RequestBody SendEmailVerificationRequest request) {
-        return ApiResponse.ok(emailVerificationService.send(request));
+        return ApiResponse.ok(SuccessCode.AUTH_EMAIL_VERIFICATION_SENT, emailVerificationService.send(request));
     }
 
     @Operation(summary = "이메일 인증번호 확인",
@@ -48,27 +49,27 @@ public class AuthController {
     @PostMapping("/email-verifications/confirm")
     public ApiResponse<EmailVerificationConfirmResponse> confirmEmailVerification(
             @Valid @RequestBody ConfirmEmailVerificationRequest request) {
-        return ApiResponse.ok(emailVerificationService.confirm(request));
+        return ApiResponse.ok(SuccessCode.AUTH_EMAIL_VERIFIED, emailVerificationService.confirm(request));
     }
 
     @Operation(summary = "기부자 회원가입",
             description = "가입과 동시에 로그인 토큰을 돌려줍니다. 필수 약관(SERVICE, PRIVACY) 동의와 이메일 인증 토큰이 필요합니다.")
     @PostMapping("/donors/sign-up")
     public ApiResponse<AuthTokenResponse> signUpDonor(@Valid @RequestBody SignUpDonorRequest request) {
-        return ApiResponse.ok(authService.signUpDonor(request));
+        return ApiResponse.ok(SuccessCode.AUTH_SIGN_UP, authService.signUpDonor(request));
     }
 
     @Operation(summary = "로그인", description = "기부자·기관 공통입니다. 응답의 role 로 홈 화면을 고릅니다.")
     @PostMapping("/login")
     public ApiResponse<AuthTokenResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.ok(authService.login(request));
+        return ApiResponse.ok(SuccessCode.AUTH_LOGIN, authService.login(request));
     }
 
     @Operation(summary = "토큰 재발급",
             description = "새 액세스·리프레시 토큰을 돌려줍니다. 쓴 리프레시 토큰은 바로 무효가 되므로 재발급은 한 번에 하나씩 요청합니다.")
     @PostMapping("/tokens/refresh")
     public ApiResponse<AuthTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ApiResponse.ok(authService.refresh(request));
+        return ApiResponse.ok(SuccessCode.AUTH_TOKEN_REFRESHED, authService.refresh(request));
     }
 
     @Operation(summary = "로그아웃",
@@ -76,6 +77,6 @@ public class AuthController {
     @PostMapping("/logout")
     public ApiResponse<Void> logout(@Valid @RequestBody LogoutRequest request) {
         authService.logout(request);
-        return ApiResponse.ok();
+        return ApiResponse.ok(SuccessCode.AUTH_LOGOUT);
     }
 }

@@ -3,6 +3,7 @@ package com.itssum.domain.item.controller;
 import com.itssum.domain.item.dto.response.ItemConditionResponse;
 import com.itssum.domain.item.entity.ConditionGrade;
 import com.itssum.global.common.ApiResponse;
+import com.itssum.global.common.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,6 @@ public class ItemConditionController {
         List<ItemConditionResponse> conditions = Arrays.stream(ConditionGrade.values())
                 .map(ItemConditionResponse::from)
                 .toList();
-        return ApiResponse.ok(conditions);
+        return ApiResponse.ok(SuccessCode.ITEM_CONDITIONS_FOUND, conditions);
     }
 }

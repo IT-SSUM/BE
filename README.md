@@ -246,7 +246,10 @@ chore: Spring Boot 4.1.1로 버전 변경
 - enum은 `@Enumerated(EnumType.STRING)`으로 저장합니다.
 
 **응답·예외**
-- 모든 응답은 `ApiResponse`로 감싸서 내려줍니다.
+- 모든 응답은 `ApiResponse`로 감싸서 내려줍니다. 성공·실패 모두 `success`, `code`, `message`가 같은 위치에 있습니다.
+  - 성공: `{"success": true, "code": "AUTH_201", "message": "회원가입이 완료되었습니다.", "data": {...}}`
+  - 실패: `{"success": false, "code": "AUTH_401", "message": "..."}` (입력값 검증 실패는 `fieldErrors` 추가)
+- 성공 코드는 `SuccessCode`에 추가하고 `ApiResponse.ok(SuccessCode.XXX, data)`로 반환합니다. HTTP 상태(예: 회원가입 201)는 `SuccessCode`를 따라 자동으로 정해집니다.
 - 예외는 `ErrorCode`에 코드를 추가하고 `BusinessException`으로 던집니다. 처리는 `GlobalExceptionHandler` 한 곳에서 합니다.
 
 <br>

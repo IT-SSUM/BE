@@ -34,14 +34,14 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/test/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+                .andExpect(jsonPath("$.code").value("COMMON_401"));
     }
 
     @Test
     void protectedApiWithInvalidTokenReturnsCommon401() throws Exception {
         mockMvc.perform(get("/api/test/me").header(HttpHeaders.AUTHORIZATION, "Bearer not.a.jwt"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+                .andExpect(jsonPath("$.code").value("COMMON_401"));
     }
 
     @Test

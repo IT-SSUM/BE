@@ -78,7 +78,8 @@ class AuthFlowIntegrationTest {
                  "agreedTerms": ["SERVICE", "PRIVACY"]}
                 """.formatted(verificationToken, email);
         ResultActions signUp = perform("/api/auth/donors/sign-up", signUpBody)
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("AUTH_201"))
                 .andExpect(jsonPath("$.data.role").value("DONOR"));
         String accessToken = read(signUp, "$.data.accessToken");
         String firstRefresh = read(signUp, "$.data.refreshToken");
@@ -86,7 +87,7 @@ class AuthFlowIntegrationTest {
         // 4. 같은 인증 토큰은 다시 쓸 수 없다 (커밋 후 소모)
         perform("/api/auth/donors/sign-up", signUpBody)
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("AUTH_400_3"));
+                .andExpect(jsonPath("$.code").value("AUTH_400_3"));
 
         // 5. 액세스 토큰으로 보호된 API 호출
         mockMvc.perform(get("/api/chat-rooms").header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
@@ -98,7 +99,7 @@ class AuthFlowIntegrationTest {
                 .andExpect(status().isOk()), "$.data.refreshToken");
         perform("/api/auth/tokens/refresh", "{\"refreshToken\": \"%s\"}".formatted(firstRefresh))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error.code").value("AUTH_401_1"));
+                .andExpect(jsonPath("$.code").value("AUTH_401_1"));
 
         // 7. 대소문자가 달라도 같은 이메일로 로그인된다
         perform("/api/auth/login", "{\"email\": \"%s\", \"password\": \"abcd1234\"}".formatted(email.toUpperCase()))

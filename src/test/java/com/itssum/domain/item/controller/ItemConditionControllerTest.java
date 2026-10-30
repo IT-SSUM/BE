@@ -22,6 +22,7 @@ class ItemConditionControllerTest {
         mockMvc.perform(get("/api/item-conditions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value("ITEM_200"))
                 .andExpect(jsonPath("$.data.length()").value(3))
                 .andExpect(jsonPath("$.data[0].code").value("HIGH"))
                 .andExpect(jsonPath("$.data[0].description").value("상·미개봉"))

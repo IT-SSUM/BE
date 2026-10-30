@@ -51,6 +51,8 @@ class AuthControllerTest {
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value("AUTH_200"))
+                .andExpect(jsonPath("$.message").value("인증번호를 보냈습니다."))
                 .andExpect(jsonPath("$.data.expiresInSeconds").value(300));
     }
 
@@ -62,6 +64,7 @@ class AuthControllerTest {
                         {"email": "donor@example.com", "code": "123456"}
                         """))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("AUTH_200_1"))
                 .andExpect(jsonPath("$.data.emailVerificationToken").value("verify-token"));
     }
 
@@ -74,7 +77,8 @@ class AuthControllerTest {
                          "password": "abcd1234", "name": "최윤서", "birthDate": "1999-03-02",
                          "phone": "010-1234-5678", "regionId": 12, "agreedTerms": ["SERVICE", "PRIVACY"]}
                         """))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("AUTH_201"))
                 .andExpect(jsonPath("$.data.userId").value(1))
                 .andExpect(jsonPath("$.data.role").value("DONOR"))
                 .andExpect(jsonPath("$.data.accessToken").value("access"))
@@ -89,8 +93,9 @@ class AuthControllerTest {
                          "phone": "1234", "agreedTerms": ["SERVICE", "PRIVACY"]}
                         """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("COMMON_400"))
-                .andExpect(jsonPath("$.error.fieldErrors[*].field", hasItems("password", "phone", "birthDate")));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON_400"))
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItems("password", "phone", "birthDate")));
     }
 
     @Test
@@ -101,6 +106,7 @@ class AuthControllerTest {
                         {"email": "donor@example.com", "password": "abcd1234"}
                         """))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("AUTH_200_2"))
                 .andExpect(jsonPath("$.data.accessToken").value("access"));
     }
 
@@ -112,7 +118,9 @@ class AuthControllerTest {
                         {"email": "donor@example.com", "password": "wrong"}
                         """))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error.code").value("AUTH_401"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("AUTH_401"))
+                .andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다."));
     }
 
     @Test
@@ -123,6 +131,7 @@ class AuthControllerTest {
                         {"refreshToken": "old-refresh"}
                         """).header(HttpHeaders.AUTHORIZATION, "Bearer expired.access.token"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("AUTH_200_3"))
                 .andExpect(jsonPath("$.data.refreshToken").value("refresh"));
     }
 
@@ -132,7 +141,9 @@ class AuthControllerTest {
                         {"refreshToken": "old-refresh"}
                         """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value("AUTH_200_4"))
+                .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(authService).logout(new LogoutRequest("old-refresh"));
     }
