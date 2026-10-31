@@ -36,6 +36,8 @@ public class SecurityConfig {
             "/api/auth/email-verifications",
             "/api/auth/email-verifications/confirm",
             "/api/auth/donors/sign-up",
+            "/api/auth/organizations/business-verifications",
+            "/api/auth/organizations/sign-up",
             "/api/auth/login",
             "/api/auth/tokens/refresh",
             "/api/auth/logout"
