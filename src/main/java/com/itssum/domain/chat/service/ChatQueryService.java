@@ -2,6 +2,7 @@ package com.itssum.domain.chat.service;
 
 import com.itssum.domain.chat.dto.response.ChatMessagePageResponse;
 import com.itssum.domain.chat.dto.response.ChatMessageResponse;
+import com.itssum.domain.chat.dto.response.ChatAppointmentResponse;
 import com.itssum.domain.chat.dto.response.ChatRoomResponse;
 import com.itssum.domain.chat.entity.ChatMessage;
 import com.itssum.domain.chat.entity.ChatParticipant;
@@ -33,6 +34,7 @@ public class ChatQueryService {
     private final ChatMessageRepository messageRepository;
     private final ObjectProvider<ChatImageStorage> imageStorageProvider;
     private final ApplicationEventPublisher eventPublisher;
+    private final ChatAppointmentCodec appointmentCodec;
 
     @Transactional(readOnly = true)
     public List<ChatRoomResponse> list(Long userId) {
@@ -105,6 +107,10 @@ public class ChatQueryService {
             boolean donor = message.getChatRoom().getMatch().getDonor().getUser().getId().equals(viewerId);
             return ChatMessageResponse.from(message, ChatSystemNotice.MATCH_CONNECTED.title(donor),
                     ChatSystemNotice.MATCH_CONNECTED.description());
+        }
+        if (message.getMessageType() == MessageType.APPOINTMENT) {
+            ChatAppointmentResponse appointment = appointmentCodec.decode(content);
+            return ChatMessageResponse.from(message, "전달 약속", null, appointment);
         }
         if (message.getMessageType() == MessageType.IMAGE) {
             ChatImageStorage storage = imageStorageProvider.getIfAvailable();

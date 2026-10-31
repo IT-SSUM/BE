@@ -5,7 +5,7 @@ import com.itssum.domain.user.dto.response.OrganizationDetailResponse;
 import com.itssum.domain.user.dto.response.OrganizationProfileResponse;
 import com.itssum.domain.user.service.OrganizationProfileService;
 import com.itssum.global.common.ApiResponse;
-import com.itssum.global.common.SuccessCode;
+import com.itssum.global.exception.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

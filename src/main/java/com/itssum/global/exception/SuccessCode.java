@@ -1,4 +1,4 @@
-package com.itssum.global.common;
+package com.itssum.global.exception;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +35,17 @@ public enum SuccessCode {
 
     // ---------- 물품 ----------
     ITEM_CONDITIONS_FOUND(HttpStatus.OK, "ITEM_200", "물품 상태 기준을 조회했습니다."),
+
+    // ---------- 매칭 ----------
+    MATCH_LIST_FOUND(HttpStatus.OK, "MATCH_200", "매칭 목록을 조회했습니다."),
+    MATCH_FOUND(HttpStatus.OK, "MATCH_200_1", "매칭을 조회했습니다."),
+    MATCH_RESERVED(HttpStatus.OK, "MATCH_200_2", "거래를 예약했습니다."),
+    MATCH_COMPLETED(HttpStatus.OK, "MATCH_200_3", "전달 완료 처리했습니다."),
+    MATCH_CANCELED(HttpStatus.OK, "MATCH_200_4", "거래를 취소했습니다."),
+    MATCH_APPOINTMENT_SAVED(HttpStatus.OK, "MATCH_200_5", "전달 약속을 저장했습니다."),
+    MATCH_ACCEPTED(HttpStatus.OK, "MATCH_200_6", "기부 제안·요청을 수락했습니다."),
+    MATCH_REJECTED(HttpStatus.OK, "MATCH_200_7", "기부 제안·요청을 거절했습니다."),
+    MATCH_CREATED(HttpStatus.CREATED, "MATCH_201", "기부 제안·요청을 생성했습니다."),
 
     // ---------- 채팅 ----------
     CHAT_ROOMS_FOUND(HttpStatus.OK, "CHAT_200", "채팅방 목록을 조회했습니다."),

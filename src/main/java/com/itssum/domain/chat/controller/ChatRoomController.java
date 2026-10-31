@@ -6,7 +6,7 @@ import com.itssum.domain.chat.dto.response.ChatRoomResponse;
 import com.itssum.domain.chat.service.ChatQueryService;
 import com.itssum.domain.chat.service.ChatUserResolver;
 import com.itssum.global.common.ApiResponse;
-import com.itssum.global.common.SuccessCode;
+import com.itssum.global.exception.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

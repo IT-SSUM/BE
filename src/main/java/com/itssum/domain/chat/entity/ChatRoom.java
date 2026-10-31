@@ -36,7 +36,7 @@ public class ChatRoom extends BaseCreatedTimeEntity {
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "match_id", nullable = false,
-            foreignKey = @ForeignKey(name = "FK_matches_TO_chat_rooms"), comment = "매칭 1건당 채팅방 1개 (수락 시 생성)")
+            foreignKey = @ForeignKey(name = "FK_matches_TO_chat_rooms"), comment = "개별 거래 1건당 채팅방 1개 (상대 수락 시 생성)")
     private Match match;
 
     @Column(length = 255, comment = "목록 미리보기용 마지막 메시지")

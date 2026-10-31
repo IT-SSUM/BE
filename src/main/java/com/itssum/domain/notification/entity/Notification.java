@@ -47,9 +47,10 @@ public class Notification extends BaseCreatedTimeEntity {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 30,
-            comment = "MATCH_REQUESTED(새 제안·요청) | MATCH_RESERVED(수락) | MATCH_REJECTED"
-                    + " | MATCH_SCHEDULED(전달 일정 확정) | MATCH_SHARING(전달 준비 시작)"
-                    + " | MATCH_RECEIVE_REQUIRED(수령 확인 요청) | MATCH_COMPLETED | MATCH_CANCELED(취소·수량 복원) | CHAT")
+            comment = "MATCH_REQUESTED(기부 제안·요청) | MATCH_ACCEPTED(수락) | MATCH_REJECTED(거절)"
+                    + " | MATCH_RESERVED(기부자 임시 예약) | MATCH_SCHEDULED(전달 약속 확정·변경)"
+                    + " | MATCH_RECEIVE_REQUIRED(수령 확인 요청)"
+                    + " | MATCH_COMPLETED | MATCH_CANCELED(거래 취소) | CHAT")
     private NotificationType type;
 
     @Column(nullable = false, length = 100, comment = "알림 제목")

@@ -77,7 +77,7 @@ public class DonationItem extends BaseTimeEntity {
     private String unit;
 
     @ColumnDefault("0")
-    @Column(nullable = false, comment = "진행 수량 (수락~전달 중인 매칭 합계)")
+    @Column(nullable = false, comment = "예약중 거래에 임시 배정된 수량")
     private int reservedQuantity = 0;
 
     @ColumnDefault("0")
@@ -94,10 +94,10 @@ public class DonationItem extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @ColumnDefault("'SHARING'")
+    @ColumnDefault("'RECRUITING'")
     @Column(nullable = false, length = 20,
-            comment = "SHARING(나눔중: 가능 수량 남음) | RESERVED(예약중: 남은 수량 0) | COMPLETED(전달 완료)")
-    private DonationItemStatus status = DonationItemStatus.SHARING;
+            comment = "RECRUITING(모집중) | FULL(예약마감) | COMPLETED(전달 완료)")
+    private DonationItemStatus status = DonationItemStatus.RECRUITING;
 
     @Column(secondPrecision = 0, comment = "삭제 일시 (soft delete)")
     private LocalDateTime deletedAt;
@@ -131,5 +131,30 @@ public class DonationItem extends BaseTimeEntity {
 
     public void delete() {
         this.deletedAt = LocalDateTime.now();
+    }
+
+    public int availableQuantity() {
+        return quantity - reservedQuantity - completedQuantity;
+    }
+
+    public void reserve(int amount) {
+        reservedQuantity += amount;
+        refreshStatus();
+    }
+
+    public void release(int amount) {
+        reservedQuantity -= amount;
+        refreshStatus();
+    }
+
+    public void complete(int amount) {
+        reservedQuantity -= amount;
+        completedQuantity += amount;
+        refreshStatus();
+    }
+
+    private void refreshStatus() {
+        status = completedQuantity == quantity ? DonationItemStatus.COMPLETED
+                : availableQuantity() == 0 ? DonationItemStatus.FULL : DonationItemStatus.RECRUITING;
     }
 }

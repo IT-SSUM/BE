@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.itssum.global.common.ApiResponse.FieldErrorBody;
 import com.itssum.global.exception.ErrorCode;
+import com.itssum.global.exception.SuccessCode;
 import com.jayway.jsonpath.JsonPath;
 import java.util.List;
 import java.util.Map;

@@ -102,7 +102,7 @@ public class NeededItem extends BaseTimeEntity {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @ColumnDefault("'RECRUITING'")
     @Column(nullable = false, length = 20,
-            comment = "RECRUITING(모집중) | FULL(신규 제안 제한: 추가 필요 0) | CLOSED(모집 종료)")
+            comment = "RECRUITING(모집중) | FULL(예약마감) | CLOSED(모집 종료)")
     private NeededItemStatus status = NeededItemStatus.RECRUITING;
 
     @Column(secondPrecision = 0, comment = "모집 종료 일시")
@@ -131,5 +131,34 @@ public class NeededItem extends BaseTimeEntity {
 
     public void delete() {
         this.deletedAt = LocalDateTime.now();
+    }
+
+    public int availableQuantity() {
+        return requiredQuantity - reservedQuantity - receivedQuantity;
+    }
+
+    public void reserve(int amount) {
+        reservedQuantity += amount;
+        refreshStatus();
+    }
+
+    public void release(int amount) {
+        reservedQuantity -= amount;
+        refreshStatus();
+    }
+
+    public void complete(int amount) {
+        reservedQuantity -= amount;
+        receivedQuantity += amount;
+        refreshStatus();
+    }
+
+    private void refreshStatus() {
+        if (receivedQuantity == requiredQuantity) {
+            status = NeededItemStatus.CLOSED;
+            closedAt = LocalDateTime.now();
+        } else if (status != NeededItemStatus.CLOSED) {
+            status = availableQuantity() == 0 ? NeededItemStatus.FULL : NeededItemStatus.RECRUITING;
+        }
     }
 }

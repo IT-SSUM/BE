@@ -2,7 +2,7 @@ package com.itssum.domain.user.controller;
 
 import com.itssum.domain.user.service.WithdrawalService;
 import com.itssum.global.common.ApiResponse;
-import com.itssum.global.common.SuccessCode;
+import com.itssum.global.exception.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.security.Principal;

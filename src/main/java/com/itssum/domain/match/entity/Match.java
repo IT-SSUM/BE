@@ -29,7 +29,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * 기부 제안(기부자 → 기관) / 나눔 요청(기관 → 기부자). donor_id, organization_id 는 목록 조회용 역정규화 컬럼이다.
+ * 기부 제안(기부자 → 기관) / 기부 요청(기관 → 기부자). donor_id, organization_id 는 목록 조회용 역정규화 컬럼이다.
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -72,10 +72,10 @@ public class Match extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 20, comment = "DONOR(기부 제안) | ORGANIZATION(나눔 요청)")
+    @Column(nullable = false, length = 20, comment = "DONOR(기부 제안) | ORGANIZATION(기부 요청)")
     private RequesterType requestedBy;
 
-    @Column(nullable = false, comment = "제안/요청 수량 (수락 시 양쪽 reserved_quantity에 반영)")
+    @Column(nullable = false, comment = "제안/요청 수량 (기부자가 예약중으로 변경하면 양쪽 reserved_quantity에 반영)")
     private int quantity;
 
     @Column(length = 500, comment = "상대에게 전할 메시지")
@@ -83,17 +83,17 @@ public class Match extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @ColumnDefault("'REQUESTED'")
+    @ColumnDefault("'PENDING'")
     @Column(nullable = false, length = 20,
-            comment = "REQUESTED(응답 대기) | RESERVED(예약중: 수락·수량 확보) | SHARING(나눔중: 기부자 전달 시작)"
+            comment = "PENDING(응답 대기) | TRADING(거래중: 수량 미확보) | RESERVED(예약중: 임시 수량 확보)"
                     + " | COMPLETED(전달 완료: 기관 수령 확인) | REJECTED | CANCELED")
-    private MatchStatus status = MatchStatus.REQUESTED;
+    private MatchStatus status = MatchStatus.PENDING;
 
-    @Column(secondPrecision = 0, comment = "수락/거절 일시")
+    @Column(secondPrecision = 0, comment = "수락·거절 일시")
     private LocalDateTime respondedAt;
 
-    @Column(secondPrecision = 0, comment = "나눔중 변경 일시")
-    private LocalDateTime sharingAt;
+    @Column(secondPrecision = 0, comment = "예약중 변경 일시")
+    private LocalDateTime reservedAt;
 
     @Column(secondPrecision = 0, comment = "수령 확인 일시")
     private LocalDateTime completedAt;
@@ -116,10 +116,10 @@ public class Match extends BaseTimeEntity {
     private LocalDateTime canceledAt;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "canceled_by", foreignKey = @ForeignKey(name = "FK_users_TO_matches"), comment = "취소/거절한 회원")
+    @JoinColumn(name = "canceled_by", foreignKey = @ForeignKey(name = "FK_users_TO_matches"), comment = "취소한 회원")
     private User canceledBy;
 
-    @Column(length = 255, comment = "취소/거절 사유")
+    @Column(length = 255, comment = "취소 사유")
     private String cancelReason;
 
     @Builder
@@ -132,5 +132,39 @@ public class Match extends BaseTimeEntity {
         this.requestedBy = requestedBy;
         this.quantity = quantity;
         this.message = message;
+    }
+
+    public void accept() {
+        this.status = MatchStatus.TRADING;
+        this.respondedAt = LocalDateTime.now();
+    }
+
+    public void reject() {
+        this.status = MatchStatus.REJECTED;
+        this.respondedAt = LocalDateTime.now();
+    }
+
+    public void reserve() {
+        this.status = MatchStatus.RESERVED;
+        this.reservedAt = LocalDateTime.now();
+    }
+
+    public void complete() {
+        this.status = MatchStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    public void cancel(User actor, String reason) {
+        this.status = MatchStatus.CANCELED;
+        this.canceledAt = LocalDateTime.now();
+        this.canceledBy = actor;
+        this.cancelReason = reason;
+    }
+
+    public void confirmAppointment(DeliveryMethod method, LocalDateTime dateTime, String place, String receiver) {
+        this.deliveryMethod = method;
+        this.scheduledAt = dateTime;
+        this.deliveryPlace = place;
+        this.receiverName = receiver;
     }
 }
