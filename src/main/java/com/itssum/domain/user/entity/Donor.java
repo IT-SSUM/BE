@@ -61,4 +61,11 @@ public class Donor extends BaseTimeEntity {
         this.phone = phone;
         this.introduction = introduction;
     }
+
+    /** 회원정보 수정. 이메일·활동 지역은 바꾸지 않는다. */
+    public void updateProfile(String name, LocalDate birthDate, String phone) {
+        this.name = name;
+        this.birthDate = birthDate;
+        this.phone = phone;
+    }
 }

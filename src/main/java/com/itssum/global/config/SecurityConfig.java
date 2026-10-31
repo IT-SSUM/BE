@@ -63,6 +63,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_PATHS).permitAll()
                         // WebSocket 핸드셰이크. 인증은 STOMP CONNECT 에서 한다 (StompAuthenticationInterceptor)
                         .requestMatchers("/ws", "/ws/**").permitAll()
+                        // 내 정보 API 는 역할별로 막는다 (다른 역할이면 403)
+                        .requestMatchers("/api/donors/me").hasRole("DONOR")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .bearerTokenResolver(new PublicPathBearerTokenResolver(PUBLIC_AUTH_PATHS))

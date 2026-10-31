@@ -25,6 +25,10 @@ public enum SuccessCode {
     AUTH_BUSINESS_VERIFIED(HttpStatus.OK, "AUTH_200_5", "사업자 확인이 완료되었습니다."),
     AUTH_SIGN_UP(HttpStatus.CREATED, "AUTH_201", "회원가입이 완료되었습니다."),
 
+    // ---------- 회원 ----------
+    USER_DONOR_PROFILE_FOUND(HttpStatus.OK, "USER_200", "기부자 프로필을 조회했습니다."),
+    USER_DONOR_PROFILE_UPDATED(HttpStatus.OK, "USER_200_1", "기부자 프로필을 수정했습니다."),
+
     // ---------- 물품 ----------
     ITEM_CONDITIONS_FOUND(HttpStatus.OK, "ITEM_200", "물품 상태 기준을 조회했습니다."),
 
