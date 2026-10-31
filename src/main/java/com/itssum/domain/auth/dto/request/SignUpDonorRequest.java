@@ -29,7 +29,8 @@ public record SignUpDonorRequest(
         @Schema(description = "전화번호. 하이픈은 없어도 된다", example = "010-1234-5678")
         @NotBlank @Pattern(regexp = "^01[016789]-?\\d{3,4}-?\\d{4}$", message = "전화번호 형식이 올바르지 않습니다.")
         String phone,
-        @Schema(description = "활동 지역 ID (선택). 파일럿 지역 경기 부천시(1)로 고정이며, 생략해도 1로 저장한다", example = "1")
+        @Schema(description = "활동 지역 ID (선택). 파일럿 지역 경기 부천시(1)로 고정이며, 생략해도 1로 저장한다. "
+                + "다른 지역은 REGION_400, 없는 ID는 REGION_404", example = "1")
         Long regionId,
         @Schema(description = "동의한 약관. SERVICE, PRIVACY 필수", example = "[\"SERVICE\", \"PRIVACY\"]")
         @NotNull List<TermsType> agreedTerms
