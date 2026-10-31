@@ -21,19 +21,17 @@ import com.itssum.domain.user.repository.OrganizationRepository;
 import com.itssum.domain.user.repository.OrganizationVerificationRepository;
 import com.itssum.domain.user.repository.TermsAgreementRepository;
 import com.itssum.domain.user.repository.UserRepository;
+import com.itssum.domain.user.service.AddressGeocoder;
 import com.itssum.global.common.PhoneNumbers;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.infra.kakao.GeoPoint;
-import com.itssum.global.infra.kakao.KakaoApiException;
-import com.itssum.global.infra.kakao.KakaoLocalClient;
 import com.itssum.global.security.AccessTokenProvider;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,7 +40,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -64,7 +61,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final EmailVerificationStore emailVerificationStore;
     private final BusinessVerificationStore businessVerificationStore;
-    private final KakaoLocalClient kakaoLocalClient;
+    private final AddressGeocoder addressGeocoder;
     private final TransactionTemplate transactionTemplate;
     private final AuthProperties authProperties;
 
@@ -121,7 +118,8 @@ public class AuthService {
             throw new BusinessException(ErrorCode.AUTH_BUSINESS_NUMBER_DUPLICATED);
         }
         String address = request.address().strip();
-        GeoPoint location = locate(address);
+        // 좌표가 없으면 거리순 추천에서만 빠지므로, 변환에 실패해도 가입은 그대로 진행한다
+        GeoPoint location = addressGeocoder.locate(address).orElse(null);
 
         return transactionTemplate.execute(status -> {
             OrganizationVerification verification = organizationVerificationRepository
@@ -243,19 +241,6 @@ public class AuthService {
                 action.run();
             }
         });
-    }
-
-    /** 좌표가 없으면 거리순 추천에서만 빠지므로, 변환에 실패해도 가입은 그대로 진행한다. */
-    private GeoPoint locate(String address) {
-        try {
-            return kakaoLocalClient.geocode(address).orElseGet(() -> {
-                log.warn("주소 좌표 변환 결과 없음: {}", address);
-                return null;
-            });
-        } catch (KakaoApiException e) {
-            log.warn("주소 좌표 변환 실패: {}", address, e);
-            return null;
-        }
     }
 
     private static String blankToNull(String value) {
