@@ -79,6 +79,16 @@ class NtsBusinessClientTest {
     }
 
     @Test
+    void malformedClosedDateIsNtsApiException() {
+        respond("""
+                {"status_code": "OK", "data": [{"valid": "01",
+                 "status": {"b_stt_cd": "03", "tax_type": "부가가치세 간이과세자", "end_dt": "2024-01-31"}}]}
+                """);
+
+        assertThrows(NtsApiException.class, () -> client.validate("1234567890", OPENING_DATE, "김수현"));
+    }
+
+    @Test
     void httpErrorIsNtsApiException() {
         server.expect(requestTo("https://nts.test/v1/validate?serviceKey=key%2B%2F%3D"))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));

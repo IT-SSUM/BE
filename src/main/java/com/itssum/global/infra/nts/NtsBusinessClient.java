@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -64,7 +65,14 @@ public class NtsBusinessClient {
     }
 
     private static LocalDate parseDate(String value) {
-        return value == null || value.isBlank() ? null : LocalDate.parse(value, NTS_DATE);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value, NTS_DATE);
+        } catch (DateTimeParseException e) {
+            throw new NtsApiException("국세청 진위확인 API 응답의 폐업일을 해석할 수 없음: " + value, e);
+        }
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(NtsProperties properties) {
