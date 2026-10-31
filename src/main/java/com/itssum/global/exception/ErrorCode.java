@@ -24,11 +24,17 @@ public enum ErrorCode {
     AUTH_VERIFICATION_CODE_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH_400_1", "인증번호가 일치하지 않습니다."),
     AUTH_VERIFICATION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "AUTH_400_2", "인증번호가 만료되었습니다. 다시 요청해 주세요."),
     AUTH_EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "AUTH_400_3", "이메일 인증이 필요합니다."),
+    AUTH_BUSINESS_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "AUTH_400_4", "사업자 확인이 필요합니다."),
+    AUTH_BUSINESS_INFO_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH_400_5", "사업자 정보가 국세청 등록 정보와 일치하지 않습니다."),
+    AUTH_BUSINESS_CLOSED(HttpStatus.BAD_REQUEST, "AUTH_400_6", "휴업 또는 폐업한 사업자는 가입할 수 없습니다."),
     AUTH_INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_401", "이메일 또는 비밀번호가 올바르지 않습니다."),
     AUTH_INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_1", "다시 로그인해 주세요."),
     AUTH_EMAIL_DUPLICATED(HttpStatus.CONFLICT, "AUTH_409", "이미 가입된 이메일입니다."),
+    AUTH_BUSINESS_NUMBER_DUPLICATED(HttpStatus.CONFLICT, "AUTH_409_1", "이미 가입된 사업자번호입니다."),
     AUTH_VERIFICATION_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "AUTH_429", "잠시 후 다시 요청해 주세요."),
     AUTH_MAIL_SEND_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "AUTH_503", "인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    AUTH_BUSINESS_VERIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AUTH_503_1",
+            "사업자 확인 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
 
     // ---------- 기준 데이터 ----------
     REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "REGION_404", "지역을 찾을 수 없습니다."),

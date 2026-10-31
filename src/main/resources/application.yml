@@ -62,3 +62,17 @@ auth:
     resend-cooldown: 60s
     max-attempts: 5
     token-ttl: 30m
+  business-verification:
+    token-ttl: 30m
+
+# 국세청 사업자등록정보 진위확인 (공공데이터포털). 서비스키는 디코딩 키를 환경변수로만 받는다
+nts:
+  base-url: https://api.odcloud.kr/api/nts-businessman/v1
+  service-key: ${NTS_SERVICE_KEY:}
+  timeout: 5s
+
+# 카카오 로컬 API (기관 주소 → 좌표, 거리순 추천용). REST API 키는 환경변수로만 받는다
+kakao:
+  base-url: https://dapi.kakao.com
+  rest-api-key: ${KAKAO_REST_API_KEY:}
+  timeout: 3s

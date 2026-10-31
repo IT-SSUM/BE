@@ -6,10 +6,14 @@ import com.itssum.domain.auth.dto.request.LogoutRequest;
 import com.itssum.domain.auth.dto.request.RefreshTokenRequest;
 import com.itssum.domain.auth.dto.request.SendEmailVerificationRequest;
 import com.itssum.domain.auth.dto.request.SignUpDonorRequest;
+import com.itssum.domain.auth.dto.request.SignUpOrganizationRequest;
+import com.itssum.domain.auth.dto.request.VerifyBusinessRequest;
 import com.itssum.domain.auth.dto.response.AuthTokenResponse;
+import com.itssum.domain.auth.dto.response.BusinessVerificationResponse;
 import com.itssum.domain.auth.dto.response.EmailVerificationConfirmResponse;
 import com.itssum.domain.auth.dto.response.EmailVerificationSendResponse;
 import com.itssum.domain.auth.service.AuthService;
+import com.itssum.domain.auth.service.BusinessVerificationService;
 import com.itssum.domain.auth.service.EmailVerificationService;
 import com.itssum.global.common.ApiResponse;
 import com.itssum.global.common.SuccessCode;
@@ -26,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 인증 없이 호출하는 API. 경로를 바꾸면 SecurityConfig.PUBLIC_AUTH_PATHS 도 같이 바꾼다.
  */
-@Tag(name = "인증", description = "이메일 인증·회원가입·로그인·토큰 API")
+@Tag(name = "인증", description = "이메일 인증·사업자 확인·회원가입·로그인·토큰 API")
 @SecurityRequirements
 @RestController
 @RequestMapping("/api/auth")
@@ -34,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final EmailVerificationService emailVerificationService;
+    private final BusinessVerificationService businessVerificationService;
     private final AuthService authService;
 
     @Operation(summary = "이메일 인증번호 발송",
@@ -57,6 +62,24 @@ public class AuthController {
     @PostMapping("/donors/sign-up")
     public ApiResponse<AuthTokenResponse> signUpDonor(@Valid @RequestBody SignUpDonorRequest request) {
         return ApiResponse.ok(SuccessCode.AUTH_SIGN_UP, authService.signUpDonor(request));
+    }
+
+    @Operation(summary = "사업자 확인",
+            description = "국세청 진위확인으로 사업자번호·개업일자·대표자명을 확인하고, 기관 회원가입 요청에 넣을 "
+                    + "businessVerificationToken(30분, 1회용)을 돌려줍니다. 불일치 AUTH_400_5, 휴·폐업 AUTH_400_6, "
+                    + "이미 가입된 사업자번호 AUTH_409_1, 국세청 장애 AUTH_503_1.")
+    @PostMapping("/organizations/business-verifications")
+    public ApiResponse<BusinessVerificationResponse> verifyBusiness(@Valid @RequestBody VerifyBusinessRequest request) {
+        return ApiResponse.ok(SuccessCode.AUTH_BUSINESS_VERIFIED, businessVerificationService.verify(request));
+    }
+
+    @Operation(summary = "기관 회원가입",
+            description = "가입과 동시에 로그인 토큰을 돌려줍니다. 이메일 인증 토큰, 사업자 확인 토큰, "
+                    + "필수 약관(SERVICE, PRIVACY, ORG_ELIGIBILITY) 동의가 필요합니다. "
+                    + "사업자번호·개업일자·대표자명은 사업자 확인 때와 같아야 합니다.")
+    @PostMapping("/organizations/sign-up")
+    public ApiResponse<AuthTokenResponse> signUpOrganization(@Valid @RequestBody SignUpOrganizationRequest request) {
+        return ApiResponse.ok(SuccessCode.AUTH_SIGN_UP, authService.signUpOrganization(request));
     }
 
     @Operation(summary = "로그인", description = "기부자·기관 공통입니다. 응답의 role 로 홈 화면을 고릅니다.")

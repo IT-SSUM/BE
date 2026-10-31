@@ -37,6 +37,7 @@
 | 인증 | Spring Security, JWT (OAuth2 Resource Server) |
 | 실시간 | Spring WebSocket + STOMP |
 | 기타 | Validation, Java Mail Sender (Gmail SMTP), Caffeine, Lombok |
+| 외부 API | 국세청 사업자등록정보 진위확인 (공공데이터포털), 카카오 로컬 (주소 → 좌표) |
 | Build | Gradle (Groovy) |
 | 배포 | GitHub Actions, Docker, AWS EC2 · RDS |
 | API 문서 | springdoc-openapi (Swagger UI) |
@@ -141,6 +142,10 @@ export JWT_SECRET=32자-이상-무작위-문자열
 # 인증 메일을 실제로 보낼 때만 (Gmail 앱 비밀번호)
 export MAIL_USERNAME=발신용@gmail.com
 export MAIL_PASSWORD=앱비밀번호
+# 기관 사업자 확인을 실제로 호출할 때만 (공공데이터포털 국세청 API 디코딩 키)
+export NTS_SERVICE_KEY=서비스키
+# 기관 주소를 좌표로 바꿀 때만 (카카오 디벨로퍼스 REST API 키). 없으면 좌표 없이 가입된다
+export KAKAO_REST_API_KEY=REST키
 
 ./gradlew bootRun
 ```
@@ -163,7 +168,7 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 - 환경변수를 새로 추가할 때는 GitHub Secrets 등록과 `cd.yml`의 `.env` 블록 수정을 같이 해야 합니다.
 - 이미지 태그는 커밋 SHA입니다. 롤백은 Actions에서 이전 CD 실행을 Re-run 하면 됩니다.
 
-필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`
+필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `NTS_SERVICE_KEY`, `KAKAO_REST_API_KEY`
 
 <br>
 

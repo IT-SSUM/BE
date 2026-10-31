@@ -60,8 +60,11 @@ public class Organization extends BaseTimeEntity {
     @Column(nullable = false, length = 20, comment = "기관 연락처")
     private String phone;
 
-    @Column(nullable = false, length = 255, comment = "기관 주소")
+    @Column(nullable = false, length = 255, comment = "기관 주소 (우편번호 검색 결과 도로명 주소)")
     private String address;
+
+    @Column(length = 100, comment = "상세주소 (동·호수, 선택)")
+    private String addressDetail;
 
     @Column(length = 255, comment = "기관 소개 (필요 물품 상세·기관 상세에 노출)")
     private String introduction;
@@ -83,8 +86,8 @@ public class Organization extends BaseTimeEntity {
 
     @Builder
     private Organization(User user, String name, String representativeName, String businessNumber,
-                         LocalDate openingDate, String phone, String address, String introduction,
-                         BigDecimal latitude, BigDecimal longitude, LocalDateTime verifiedAt) {
+                         LocalDate openingDate, String phone, String address, String addressDetail,
+                         String introduction, BigDecimal latitude, BigDecimal longitude, LocalDateTime verifiedAt) {
         this.user = user;
         this.name = name;
         this.representativeName = representativeName;
@@ -92,6 +95,7 @@ public class Organization extends BaseTimeEntity {
         this.openingDate = openingDate;
         this.phone = phone;
         this.address = address;
+        this.addressDetail = addressDetail;
         this.introduction = introduction;
         this.latitude = latitude;
         this.longitude = longitude;

@@ -10,9 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.itssum.domain.auth.dto.request.LogoutRequest;
 import com.itssum.domain.auth.dto.response.AuthTokenResponse;
+import com.itssum.domain.auth.dto.response.BusinessVerificationResponse;
 import com.itssum.domain.auth.dto.response.EmailVerificationConfirmResponse;
 import com.itssum.domain.auth.dto.response.EmailVerificationSendResponse;
 import com.itssum.domain.auth.service.AuthService;
+import com.itssum.domain.auth.service.BusinessVerificationService;
 import com.itssum.domain.auth.service.EmailVerificationService;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.global.exception.BusinessException;
@@ -41,6 +43,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private EmailVerificationService emailVerificationService;
+
+    @MockitoBean
+    private BusinessVerificationService businessVerificationService;
 
     @Test
     void sendEmailVerificationWithoutToken() throws Exception {
@@ -96,6 +101,74 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("COMMON_400"))
                 .andExpect(jsonPath("$.fieldErrors[*].field", hasItems("password", "phone", "birthDate")));
+    }
+
+    @Test
+    void verifyBusinessWithoutTokenReturnsBusinessVerificationToken() throws Exception {
+        when(businessVerificationService.verify(any())).thenReturn(new BusinessVerificationResponse("business-token"));
+
+        mockMvc.perform(json("/api/auth/organizations/business-verifications", """
+                        {"businessNumber": "123-45-67890", "openingDate": "2015-03-02", "representativeName": "김수현"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("AUTH_200_5"))
+                .andExpect(jsonPath("$.message").value("사업자 확인이 완료되었습니다."))
+                .andExpect(jsonPath("$.data.businessVerificationToken").value("business-token"));
+    }
+
+    @Test
+    void verifyBusinessValidationFailureReturnsFieldErrors() throws Exception {
+        mockMvc.perform(json("/api/auth/organizations/business-verifications", """
+                        {"businessNumber": "123-45", "representativeName": ""}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_400"))
+                .andExpect(jsonPath("$.fieldErrors[*].field",
+                        hasItems("businessNumber", "openingDate", "representativeName")));
+    }
+
+    @Test
+    void verifyBusinessClosedUsesAuthErrorCode() throws Exception {
+        when(businessVerificationService.verify(any())).thenThrow(new BusinessException(ErrorCode.AUTH_BUSINESS_CLOSED));
+
+        mockMvc.perform(json("/api/auth/organizations/business-verifications", """
+                        {"businessNumber": "1234567890", "openingDate": "2015-03-02", "representativeName": "김수현"}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("AUTH_400_6"));
+    }
+
+    @Test
+    void signUpOrganizationReturnsTokens() throws Exception {
+        when(authService.signUpOrganization(any()))
+                .thenReturn(new AuthTokenResponse(2L, UserRole.ORGANIZATION, "access", "refresh"));
+
+        mockMvc.perform(json("/api/auth/organizations/sign-up", """
+                        {"emailVerificationToken": "verify-token", "businessVerificationToken": "business-token",
+                         "email": "org@example.com", "password": "abcd1234", "name": "구로지역아동센터",
+                         "representativeName": "김수현", "businessNumber": "123-45-67890",
+                         "openingDate": "2015-03-02", "phone": "02-1234-5678",
+                         "address": "서울 구로구 가마산로 12", "addressDetail": "2층",
+                         "agreedTerms": ["SERVICE", "PRIVACY", "ORG_ELIGIBILITY"]}
+                        """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("AUTH_201"))
+                .andExpect(jsonPath("$.data.userId").value(2))
+                .andExpect(jsonPath("$.data.role").value("ORGANIZATION"));
+    }
+
+    @Test
+    void signUpOrganizationValidationFailureReturnsFieldErrors() throws Exception {
+        mockMvc.perform(json("/api/auth/organizations/sign-up", """
+                        {"emailVerificationToken": "verify-token", "email": "org@example.com",
+                         "password": "abcd1234", "name": "구로지역아동센터", "representativeName": "김수현",
+                         "businessNumber": "1234567890", "openingDate": "2015-03-02", "phone": "1234",
+                         "agreedTerms": ["SERVICE", "PRIVACY", "ORG_ELIGIBILITY"]}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_400"))
+                .andExpect(jsonPath("$.fieldErrors[*].field",
+                        hasItems("businessVerificationToken", "phone", "address")));
     }
 
     @Test

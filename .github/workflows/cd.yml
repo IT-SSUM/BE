@@ -68,11 +68,13 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            NTS_SERVICE_KEY=${{ secrets.NTS_SERVICE_KEY }}
+            KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}
             EOF
             chmod 600 .env
 
             # 시크릿 누락은 빈 값으로 조용히 통과한다 → 컨테이너 띄우기 전에 여기서 끊는다.
-            for required in DB_URL DB_USERNAME DB_PASSWORD JWT_SECRET MAIL_USERNAME MAIL_PASSWORD; do
+            for required in DB_URL DB_USERNAME DB_PASSWORD JWT_SECRET MAIL_USERNAME MAIL_PASSWORD NTS_SERVICE_KEY KAKAO_REST_API_KEY; do
               if ! grep -q "^${required}=." .env; then
                 echo "❌ 필수 시크릿이 비어 있습니다: ${required}"
                 exit 1

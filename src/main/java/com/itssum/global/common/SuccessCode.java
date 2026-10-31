@@ -22,6 +22,7 @@ public enum SuccessCode {
     AUTH_LOGIN(HttpStatus.OK, "AUTH_200_2", "로그인에 성공했습니다."),
     AUTH_TOKEN_REFRESHED(HttpStatus.OK, "AUTH_200_3", "토큰을 재발급했습니다."),
     AUTH_LOGOUT(HttpStatus.OK, "AUTH_200_4", "로그아웃했습니다."),
+    AUTH_BUSINESS_VERIFIED(HttpStatus.OK, "AUTH_200_5", "사업자 확인이 완료되었습니다."),
     AUTH_SIGN_UP(HttpStatus.CREATED, "AUTH_201", "회원가입이 완료되었습니다."),
 
     // ---------- 물품 ----------
