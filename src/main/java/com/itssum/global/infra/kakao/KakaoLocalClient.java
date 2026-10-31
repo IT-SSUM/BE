@@ -52,8 +52,16 @@ public class KakaoLocalClient {
         return Optional.of(new GeoPoint(coordinate(document.y()), coordinate(document.x())));
     }
 
+    /** 좌표가 없거나 숫자가 아니면 호출 실패와 같이 다뤄서, 가입은 좌표 없이 진행되게 한다. */
     private static BigDecimal coordinate(String value) {
-        return new BigDecimal(value).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP);
+        if (value == null) {
+            throw new KakaoApiException("카카오 주소 검색 API 응답에 좌표가 없음", null);
+        }
+        try {
+            return new BigDecimal(value).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP);
+        } catch (NumberFormatException e) {
+            throw new KakaoApiException("카카오 주소 검색 API 응답 좌표를 해석할 수 없음: " + value, e);
+        }
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(KakaoProperties properties) {

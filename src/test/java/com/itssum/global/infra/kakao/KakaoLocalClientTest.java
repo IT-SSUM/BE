@@ -60,10 +60,30 @@ class KakaoLocalClientTest {
     }
 
     @Test
+    void missingOrNonNumericCoordinateIsKakaoApiException() {
+        respondDocument("""
+                {"x": "126.886829423468"}
+                """);
+        respondDocument("""
+                {"x": "abc", "y": "37.4930157637402"}
+                """);
+
+        assertThrows(KakaoApiException.class, () -> client.geocode(ADDRESS));
+        assertThrows(KakaoApiException.class, () -> client.geocode(ADDRESS));
+    }
+
+    @Test
     void httpErrorIsKakaoApiException() {
         server.expect(requestTo(Matchers.startsWith("https://kakao.test/v2/local/search/address.json")))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
         assertThrows(KakaoApiException.class, () -> client.geocode(ADDRESS));
+    }
+
+    private void respondDocument(String document) {
+        server.expect(requestTo(Matchers.startsWith("https://kakao.test/v2/local/search/address.json")))
+                .andRespond(withSuccess("""
+                        {"meta": {"total_count": 1}, "documents": [%s]}
+                        """.formatted(document), MediaType.APPLICATION_JSON));
     }
 }
