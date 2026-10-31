@@ -28,6 +28,8 @@ public enum SuccessCode {
     // ---------- 회원 ----------
     USER_DONOR_PROFILE_FOUND(HttpStatus.OK, "USER_200", "기부자 프로필을 조회했습니다."),
     USER_DONOR_PROFILE_UPDATED(HttpStatus.OK, "USER_200_1", "기부자 프로필을 수정했습니다."),
+    USER_ORGANIZATION_PROFILE_FOUND(HttpStatus.OK, "USER_200_2", "기관 정보를 조회했습니다."),
+    USER_ORGANIZATION_PROFILE_UPDATED(HttpStatus.OK, "USER_200_3", "기관 정보를 수정했습니다."),
 
     // ---------- 물품 ----------
     ITEM_CONDITIONS_FOUND(HttpStatus.OK, "ITEM_200", "물품 상태 기준을 조회했습니다."),

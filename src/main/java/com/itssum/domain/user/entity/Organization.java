@@ -101,4 +101,22 @@ public class Organization extends BaseTimeEntity {
         this.longitude = longitude;
         this.verifiedAt = verifiedAt;
     }
+
+    /** 기관 정보 수정. 대표자명·사업자번호·개업일자는 국세청으로 확인한 값이라 바꾸지 않는다. */
+    public void updateProfile(String name, String phone) {
+        this.name = name;
+        this.phone = phone;
+    }
+
+    /** 주소를 옮긴다. 좌표 변환에 실패했으면 이전 주소의 좌표를 남기지 않고 비운다. */
+    public void relocate(String address, String addressDetail, BigDecimal latitude, BigDecimal longitude) {
+        this.address = address;
+        this.addressDetail = addressDetail;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public void changeAddressDetail(String addressDetail) {
+        this.addressDetail = addressDetail;
+    }
 }

@@ -65,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers("/ws", "/ws/**").permitAll()
                         // 내 정보 API 는 역할별로 막는다 (다른 역할이면 403)
                         .requestMatchers("/api/donors/me").hasRole("DONOR")
+                        .requestMatchers("/api/organizations/me").hasRole("ORGANIZATION")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .bearerTokenResolver(new PublicPathBearerTokenResolver(PUBLIC_AUTH_PATHS))
