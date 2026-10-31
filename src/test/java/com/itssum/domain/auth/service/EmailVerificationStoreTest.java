@@ -16,7 +16,8 @@ class EmailVerificationStoreTest {
 
     private static final String EMAIL = "donor@example.com";
     private static final AuthProperties PROPERTIES = new AuthProperties("v1", new AuthProperties.EmailVerification(
-            Duration.ofMinutes(5), Duration.ofSeconds(60), 5, Duration.ofMinutes(30)));
+            Duration.ofMinutes(5), Duration.ofSeconds(60), 5, Duration.ofMinutes(30)),
+            new AuthProperties.BusinessVerification(Duration.ofMinutes(30)));
 
     private final FakeTicker ticker = new FakeTicker();
     private final EmailVerificationStore store = new EmailVerificationStore(PROPERTIES, ticker);
