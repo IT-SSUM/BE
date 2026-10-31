@@ -21,6 +21,7 @@ import com.itssum.domain.user.repository.OrganizationRepository;
 import com.itssum.domain.user.repository.OrganizationVerificationRepository;
 import com.itssum.domain.user.repository.TermsAgreementRepository;
 import com.itssum.domain.user.repository.UserRepository;
+import com.itssum.global.common.PhoneNumbers;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.infra.kakao.GeoPoint;
@@ -91,7 +92,7 @@ public class AuthService {
                 .region(region)
                 .name(request.name())
                 .birthDate(request.birthDate())
-                .phone(formatPhone(request.phone()))
+                .phone(PhoneNumbers.format(request.phone()))
                 .build());
         saveTerms(user, DONOR_REQUIRED_TERMS);
 
@@ -133,7 +134,7 @@ public class AuthService {
                     .representativeName(representativeName)
                     .businessNumber(businessNumber)
                     .openingDate(request.openingDate())
-                    .phone(formatPhone(request.phone()))
+                    .phone(PhoneNumbers.format(request.phone()))
                     .address(address)
                     .addressDetail(blankToNull(request.addressDetail()))
                     .latitude(location == null ? null : location.latitude())
@@ -242,21 +243,6 @@ public class AuthService {
                 action.run();
             }
         });
-    }
-
-    /**
-     * 휴대폰 01012345678 → 010-1234-5678, 10자리는 011-123-4567.
-     * 서울 지역번호 02 는 두 자리로 자르고 (02-123-4567), 15xx 같은 대표번호 8자리는 1588-1234.
-     */
-    private static String formatPhone(String phone) {
-        String digits = phone.replaceAll("\\D", "");
-        int lastPartStart = digits.length() - 4;
-        if (digits.length() == 8) {
-            return digits.substring(0, lastPartStart) + "-" + digits.substring(lastPartStart);
-        }
-        int areaCodeLength = digits.startsWith("02") ? 2 : 3;
-        return digits.substring(0, areaCodeLength) + "-" + digits.substring(areaCodeLength, lastPartStart)
-                + "-" + digits.substring(lastPartStart);
     }
 
     /** 좌표가 없으면 거리순 추천에서만 빠지므로, 변환에 실패해도 가입은 그대로 진행한다. */
