@@ -29,6 +29,8 @@ jobs:
       DB_URL: jdbc:mysql://127.0.0.1:3306/itssum?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       DB_USERNAME: root
       DB_PASSWORD: test
+      # 테스트 전용 서명 키. 운영 키는 GitHub Secrets 의 JWT_SECRET 을 쓴다
+      JWT_SECRET: ci-only-jwt-secret-not-for-production-0123456789
 
     steps:
       - name: 소스 체크아웃

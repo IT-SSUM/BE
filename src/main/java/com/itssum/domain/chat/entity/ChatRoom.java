@@ -49,4 +49,9 @@ public class ChatRoom extends BaseCreatedTimeEntity {
     private ChatRoom(Match match) {
         this.match = match;
     }
+
+    public void updateLastMessage(String content, LocalDateTime sentAt) {
+        this.lastMessageContent = content;
+        this.lastMessageAt = sentAt;
+    }
 }

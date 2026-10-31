@@ -14,6 +14,7 @@
 --   + notification_settings   : GET/PATCH /api/users/me/notification-settings
 --   + push_tokens             : POST/DELETE /api/users/me/push-tokens (후순위)
 --   + password_reset_tokens   : Figma A13·A14 비밀번호 재설정(메일 링크)
+--   + refresh_tokens          : POST /api/auth/login, /tokens/refresh, /logout (기기별 리프레시 토큰)
 --   * donors        : birth_date 필수, region_id(활동 지역·선택), introduction(기부자 소개) 추가
 --   * organizations : introduction(기관 소개) 추가
 --   * donation_items: pickup_address(물품 상세 위치) 추가
@@ -74,7 +75,8 @@ CREATE TABLE `organizations` (
   `business_number`     CHAR(10)      NOT NULL COMMENT '사업자번호 10자리, 하이픈 제외 (NTS b_no)',
   `opening_date`        DATE          NOT NULL COMMENT '개업일자 (NTS start_dt)',
   `phone`               VARCHAR(20)   NOT NULL COMMENT '기관 연락처',
-  `address`             VARCHAR(255)  NOT NULL COMMENT '기관 주소',
+  `address`             VARCHAR(255)  NOT NULL COMMENT '기관 주소 (우편번호 검색 결과 도로명 주소)',
+  `address_detail`      VARCHAR(100)  NULL     COMMENT '상세주소 (동·호수, 선택)',
   `introduction`        VARCHAR(255)  NULL     COMMENT '기관 소개 (필요 물품 상세·기관 상세에 노출)',
   `latitude`            DECIMAL(10,7) NULL     COMMENT '위도 (주소 지오코딩, 거리순 추천용)',
   `longitude`           DECIMAL(10,7) NULL     COMMENT '경도',
@@ -101,13 +103,12 @@ CREATE TABLE `organization_verifications` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='기관 사업자 인증 이력';
 
 -- ---------- 기준 데이터 ----------
--- 지역 선택 화면(구 단위) + 거리순 추천의 기준 좌표
+-- 기부자 활동 지역·물품 지역 표시용. 거리 계산은 물품·기관 주소 좌표로 하므로 좌표를 두지 않는다
+-- 파일럿은 경기 부천시 한 곳(region_id = 1)으로 고정하고 src/main/resources/data.sql 이 넣는다
 CREATE TABLE `regions` (
   `region_id`  BIGINT        NOT NULL AUTO_INCREMENT COMMENT '지역 ID',
-  `sido`       VARCHAR(20)   NOT NULL COMMENT '시·도 (서울)',
-  `sigungu`    VARCHAR(30)   NOT NULL COMMENT '시·군·구 (구로구)',
-  `latitude`   DECIMAL(10,7) NOT NULL COMMENT '구 중심 위도',
-  `longitude`  DECIMAL(10,7) NOT NULL COMMENT '구 중심 경도',
+  `sido`       VARCHAR(20)   NOT NULL COMMENT '시·도 (경기)',
+  `sigungu`    VARCHAR(30)   NOT NULL COMMENT '시·군·구 (부천시)',
   PRIMARY KEY (`region_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지역';
 
@@ -321,6 +322,18 @@ CREATE TABLE `password_reset_tokens` (
   PRIMARY KEY (`reset_token_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='비밀번호 재설정 토큰';
 
+-- POST /api/auth/login, /api/auth/tokens/refresh, /api/auth/logout
+-- 로그인 1회(기기)당 1행. 원문 대신 SHA-256 해시만 저장, 재발급 시 행을 교체(rotation)
+-- 만료 행은 그 회원이 다시 로그인할 때 user_id 로 정리
+CREATE TABLE `refresh_tokens` (
+  `refresh_token_id` BIGINT   NOT NULL AUTO_INCREMENT COMMENT '리프레시 토큰 ID',
+  `user_id`          BIGINT   NOT NULL COMMENT '회원 ID',
+  `token_hash`       CHAR(64) NOT NULL COMMENT '리프레시 토큰 SHA-256 해시',
+  `expires_at`       DATETIME NOT NULL COMMENT '만료 일시',
+  `created_at`       DATETIME NOT NULL COMMENT '발급 일시',
+  PRIMARY KEY (`refresh_token_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='리프레시 토큰';
+
 
 -- =====================================================================
 -- [2] FOREIGN KEYS
@@ -366,6 +379,7 @@ ALTER TABLE `notifications`         ADD CONSTRAINT `FK_users_TO_notifications`  
 ALTER TABLE `notification_settings` ADD CONSTRAINT `FK_users_TO_notification_settings` FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 ALTER TABLE `push_tokens`           ADD CONSTRAINT `FK_users_TO_push_tokens`           FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 ALTER TABLE `password_reset_tokens` ADD CONSTRAINT `FK_users_TO_password_reset_tokens` FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
+ALTER TABLE `refresh_tokens`        ADD CONSTRAINT `FK_users_TO_refresh_tokens`        FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 
 
 -- =====================================================================
@@ -382,6 +396,7 @@ ALTER TABLE `organization_recommendations`  ADD CONSTRAINT `UQ_org_rec_item_need
 ALTER TABLE `donation_item_recommendations` ADD CONSTRAINT `UQ_item_rec_needed_item` UNIQUE (`needed_item_id`, `donation_item_id`);
 ALTER TABLE `push_tokens`       ADD CONSTRAINT `UQ_push_tokens_token`             UNIQUE (`token`);
 ALTER TABLE `password_reset_tokens` ADD CONSTRAINT `UQ_password_reset_tokens_hash` UNIQUE (`token_hash`);
+ALTER TABLE `refresh_tokens`        ADD CONSTRAINT `UQ_refresh_tokens_hash`        UNIQUE (`token_hash`);
 
 CREATE INDEX `IDX_donation_items_status_created` ON `donation_items` (`status`, `created_at`);
 CREATE INDEX `IDX_needed_items_status_created`   ON `needed_items` (`status`, `created_at`);

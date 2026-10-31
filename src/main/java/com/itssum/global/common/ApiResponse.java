@@ -1,29 +1,40 @@
 package com.itssum.global.common;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.itssum.global.exception.ErrorCode;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 
 /**
- * 공통 응답 포맷.
- * <pre>
- * 성공: { "success": true,  "data": { ... } }
- * 실패: { "success": false, "error": { "code": "COMMON_400", "message": "...", "fieldErrors": [ ... ] } }
- * </pre>
+ * 모든 API 응답 형식. 성공은 SuccessCode, 실패는 ErrorCode 의 code·message 를 같은 위치에 담는다.
+ * status 는 JSON 에 나가지 않고 ApiResponseStatusAdvice 가 HTTP 응답 상태로 쓴다.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(
         boolean success,
+        String code,
+        String message,
         T data,
-        ErrorBody error
+        List<FieldErrorBody> fieldErrors,
+        @JsonIgnore HttpStatus status
 ) {
 
+    public static <T> ApiResponse<T> ok(SuccessCode successCode, T data) {
+        return new ApiResponse<>(true, successCode.getCode(), successCode.getMessage(), data, null,
+                successCode.getStatus());
+    }
+
+    public static ApiResponse<Void> ok(SuccessCode successCode) {
+        return ok(successCode, null);
+    }
+
     public static <T> ApiResponse<T> ok(T data) {
-        return new ApiResponse<>(true, data, null);
+        return ok(SuccessCode.OK, data);
     }
 
     public static ApiResponse<Void> ok() {
-        return new ApiResponse<>(true, null, null);
+        return ok(SuccessCode.OK);
     }
 
     public static ApiResponse<Void> fail(ErrorCode errorCode) {
@@ -31,20 +42,12 @@ public record ApiResponse<T>(
     }
 
     public static ApiResponse<Void> fail(ErrorCode errorCode, String message) {
-        return new ApiResponse<>(false, null, new ErrorBody(errorCode.getCode(), message, null));
+        return new ApiResponse<>(false, errorCode.getCode(), message, null, null, errorCode.getStatus());
     }
 
     public static ApiResponse<Void> fail(ErrorCode errorCode, List<FieldErrorBody> fieldErrors) {
-        return new ApiResponse<>(false, null,
-                new ErrorBody(errorCode.getCode(), errorCode.getMessage(), fieldErrors));
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record ErrorBody(
-            String code,
-            String message,
-            List<FieldErrorBody> fieldErrors
-    ) {
+        return new ApiResponse<>(false, errorCode.getCode(), errorCode.getMessage(), null, fieldErrors,
+                errorCode.getStatus());
     }
 
     public record FieldErrorBody(

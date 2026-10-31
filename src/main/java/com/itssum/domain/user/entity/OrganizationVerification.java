@@ -85,4 +85,9 @@ public class OrganizationVerification {
         this.result = result;
         this.checkedAt = checkedAt;
     }
+
+    /** 가입 전 사업자 확인 이력을 가입한 기관에 연결한다. */
+    public void linkOrganization(Organization organization) {
+        this.organization = organization;
+    }
 }

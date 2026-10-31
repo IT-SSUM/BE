@@ -64,6 +64,11 @@ public class User extends BaseTimeEntity {
         this.role = role;
     }
 
+    /** 로그인·토큰 재발급이 가능한 회원인지. 탈퇴 상태와 deleted_at 을 둘 다 본다. */
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE && deletedAt == null;
+    }
+
     public void delete() {
         this.deletedAt = LocalDateTime.now();
     }

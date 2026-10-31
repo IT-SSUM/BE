@@ -9,7 +9,7 @@
 ## 주요 기능
 
 **기부자**
-- 기부 물품 등록 (카테고리, 품목, 수량, 물품 상태 상·중·하, 사진 1장 이상, 구 단위 지역)
+- 기부 물품 등록 (카테고리, 품목, 수량, 물품 상태 상·중·하, 사진 1장 이상, 지역은 경기 부천시 고정)
 - 등록한 물품 기준으로 추천 기관 목록 확인 후 기부 제안
 - 기관이 보낸 나눔 요청 수락 / 거절
 - 수락된 건은 채팅으로 일정 조율 → "나눔중"으로 변경
@@ -34,9 +34,10 @@
 | Language | Java 21 |
 | Framework | Spring Boot 4.1.1, Spring MVC |
 | DB | MySQL 8.4, Spring Data JPA (Hibernate) |
-| 인증 | Spring Security (JWT 적용 예정) |
+| 인증 | Spring Security, JWT (OAuth2 Resource Server) |
 | 실시간 | Spring WebSocket + STOMP |
-| 기타 | Validation, Java Mail Sender, Lombok |
+| 기타 | Validation, Java Mail Sender (Gmail SMTP), Caffeine, Lombok |
+| 외부 API | 국세청 사업자등록정보 진위확인 (공공데이터포털), 카카오 로컬 (주소 → 좌표) |
 | Build | Gradle (Groovy) |
 | 배포 | GitHub Actions, Docker, AWS EC2 · RDS |
 | API 문서 | springdoc-openapi (Swagger UI) |
@@ -52,7 +53,7 @@
 
 | 색 | 도메인 | 테이블 |
 |---|---|---|
-| 파랑 | 회원·인증 | `users`, `terms_agreements`, `password_reset_tokens`, `donors`, `organizations`, `organization_verifications` |
+| 파랑 | 회원·인증 | `users`, `terms_agreements`, `password_reset_tokens`, `refresh_tokens`, `donors`, `organizations`, `organization_verifications` |
 | 노랑 | 기준 데이터 | `regions`, `item_categories` |
 | 초록 | 물품 | `donation_items`, `donation_item_images`, `needed_items` |
 | 빨강 | 매칭 | `matches` |
@@ -67,6 +68,7 @@
 - 기부 물품 하나를 여러 기관에 나눠 줄 수 있어서 수량을 `quantity`, `reserved_quantity`, `completed_quantity` 세 개로 관리합니다. 필요 물품도 같은 방식입니다.
 - 매칭 목록 조회가 잦아서 `matches`에 `donor_id`, `organization_id`를 중복 저장했습니다.
 - 회원 탈퇴, 물품 삭제는 `deleted_at`을 채우는 soft delete입니다.
+- 파일럿 지역은 경기 부천시 한 곳입니다. `regions`에는 `region_id = 1`인 부천시만 있고, 기부자 활동 지역과 물품 지역은 이 값으로 고정합니다. 거리 계산은 물품 상세주소와 기관 주소의 좌표로 하기 때문에 `regions`에는 좌표를 두지 않습니다.
 
 ### 스키마 관리
 
@@ -74,6 +76,7 @@ Flyway는 쓰지 않고 `spring.jpa.hibernate.ddl-auto: update`로 관리합니�
 
 - 엔티티를 고치면 `docs/erd/itssum_erd_v3.sql`과 ERDCloud도 같이 고쳐주세요.
 - `update`는 컬럼 추가만 반영하고 타입 변경이나 컬럼 삭제는 반영하지 않습니다. 이런 변경이 있으면 로컬 DB를 지우고 다시 띄우면 됩니다.
+- 지역 같은 기준 데이터는 `src/main/resources/data.sql`이 서버가 뜰 때마다 넣습니다. `INSERT IGNORE`라서 이미 있으면 건너뜁니다.
 
 <br>
 
@@ -131,12 +134,20 @@ src/main/java/com/itssum
 
 ## 로컬 실행
 
-MySQL 8.4에 `itssum` 스키마를 먼저 만들어 두고, DB 접속 정보는 환경변수로 넘깁니다. 접속 정보는 커밋하지 않습니다.
+MySQL 8.4에 `itssum` 스키마를 먼저 만들어 두고, DB 접속 정보와 JWT 키는 환경변수로 넘깁니다. 비밀값은 커밋하지 않습니다.
 
 ```bash
 export DB_URL="jdbc:mysql://localhost:3306/itssum?serverTimezone=Asia/Seoul"
 export DB_USERNAME=root
 export DB_PASSWORD=비밀번호
+export JWT_SECRET=32자-이상-무작위-문자열
+# 인증 메일을 실제로 보낼 때만 (Gmail 앱 비밀번호)
+export MAIL_USERNAME=발신용@gmail.com
+export MAIL_PASSWORD=앱비밀번호
+# 기관 사업자 확인을 실제로 호출할 때만 (공공데이터포털 국세청 API 디코딩 키)
+export NTS_SERVICE_KEY=서비스키
+# 기관 주소를 좌표로 바꿀 때만 (카카오 디벨로퍼스 REST API 키). 없으면 좌표 없이 가입된다
+export KAKAO_REST_API_KEY=REST키
 
 ./gradlew bootRun
 ```
@@ -159,7 +170,7 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 - 환경변수를 새로 추가할 때는 GitHub Secrets 등록과 `cd.yml`의 `.env` 블록 수정을 같이 해야 합니다.
 - 이미지 태그는 커밋 SHA입니다. 롤백은 Actions에서 이전 CD 실행을 Re-run 하면 됩니다.
 
-필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
+필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `NTS_SERVICE_KEY`, `KAKAO_REST_API_KEY`
 
 <br>
 
@@ -169,7 +180,7 @@ API 명세는 노션에서 관리하고, 실제 요청·응답은 Swagger UI에�
 
 - 로컬: http://localhost:8080/swagger-ui.html
 - 배포 서버: `http://<EC2 주소>/swagger-ui.html` (도메인 연결 후 주소 갱신 예정)
-- JWT 적용 후에는 우측 상단 **Authorize**에 액세스 토큰을 넣고 호출합니다.
+- 로그인·회원가입 응답의 `accessToken`을 우측 상단 **Authorize**에 넣고 호출합니다. 인증 API(`/api/auth/...`)는 토큰 없이 호출합니다.
 
 - REST: `/api/{리소스 복수형}` 형태, 내 정보는 `/me`로 접근 (예: `GET /api/donors/me/donation-items`)
 - 상태 변경은 `PATCH /api/{리소스}/{id}/{동작}` (예: `PATCH /api/needed-items/{id}/close`)
@@ -242,7 +253,10 @@ chore: Spring Boot 4.1.1로 버전 변경
 - enum은 `@Enumerated(EnumType.STRING)`으로 저장합니다.
 
 **응답·예외**
-- 모든 응답은 `ApiResponse`로 감싸서 내려줍니다.
+- 모든 응답은 `ApiResponse`로 감싸서 내려줍니다. 성공·실패 모두 `success`, `code`, `message`가 같은 위치에 있습니다.
+  - 성공: `{"success": true, "code": "AUTH_201", "message": "회원가입이 완료되었습니다.", "data": {...}}`
+  - 실패: `{"success": false, "code": "AUTH_401", "message": "..."}` (입력값 검증 실패는 `fieldErrors` 추가)
+- 성공 코드는 `SuccessCode`에 추가하고 `ApiResponse.ok(SuccessCode.XXX, data)`로 반환합니다. HTTP 상태(예: 회원가입 201)는 `SuccessCode`를 따라 자동으로 정해집니다.
 - 예외는 `ErrorCode`에 코드를 추가하고 `BusinessException`으로 던집니다. 처리는 `GlobalExceptionHandler` 한 곳에서 합니다.
 
 <br>
