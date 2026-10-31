@@ -40,11 +40,12 @@ public class OrganizationProfileService {
 
     /**
      * 보내지 않은 필드(null)는 그대로 둔다. 주소와 상세주소는 한 묶음이라 주소를 보내면 상세주소도 이 요청의 값으로 바뀐다.
-     * 주소가 실제로 바뀔 때만 좌표를 다시 계산하고, 카카오 호출 동안 DB 트랜잭션을 잡지 않도록 저장만 트랜잭션으로 묶는다.
+     * 주소가 바뀌었거나 좌표가 비어 있을 때(가입 때 카카오 장애 등)만 좌표를 다시 계산하고,
+     * 카카오 호출 동안 DB 트랜잭션을 잡지 않도록 저장만 트랜잭션으로 묶는다.
      */
     public OrganizationProfileResponse updateMine(Long userId, UpdateOrganizationProfileRequest request) {
         String address = request.address() == null ? null : request.address().strip();
-        boolean relocated = address != null && !address.equals(memberReader.activeOrganization(userId).getAddress());
+        boolean relocated = address != null && needsGeocoding(address, memberReader.activeOrganization(userId));
         GeoPoint location = relocated ? addressGeocoder.locate(address).orElse(null) : null;
 
         return transactionTemplate.execute(status -> {
@@ -62,6 +63,11 @@ public class OrganizationProfileService {
             }
             return OrganizationProfileResponse.from(organization);
         });
+    }
+
+    /** 주소가 바뀌었거나, 같은 주소라도 좌표가 비어 있으면(가입 때 카카오 장애 등) 다시 계산한다. */
+    private static boolean needsGeocoding(String address, Organization current) {
+        return !address.equals(current.getAddress()) || current.getLatitude() == null;
     }
 
     private static String blankToNull(String value) {

@@ -143,6 +143,19 @@ class OrganizationProfileServiceTest {
     }
 
     @Test
+    void updateMineRetriesGeocodingWhenCoordinatesMissing() {
+        // 가입 때 카카오 장애로 좌표가 비었던 기관은 같은 주소를 다시 저장하면 좌표를 다시 계산한다
+        organization.relocate(ADDRESS, "2층", null, null);
+        when(addressGeocoder.locate(ADDRESS)).thenReturn(Optional.of(OLD_POINT));
+
+        service.updateMine(2L, new UpdateOrganizationProfileRequest(null, null, ADDRESS, "2층"));
+
+        assertEquals(OLD_POINT.latitude(), organization.getLatitude());
+        assertEquals(OLD_POINT.longitude(), organization.getLongitude());
+        assertEquals(ADDRESS, organization.getAddress());
+    }
+
+    @Test
     void updateMineClearsDetailWithBlank() {
         service.updateMine(2L, new UpdateOrganizationProfileRequest(null, null, null, ""));
 
