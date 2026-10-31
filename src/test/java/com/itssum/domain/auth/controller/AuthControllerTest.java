@@ -80,7 +80,7 @@ class AuthControllerTest {
         mockMvc.perform(json("/api/auth/donors/sign-up", """
                         {"emailVerificationToken": "verify-token", "email": "donor@example.com",
                          "password": "abcd1234", "name": "최윤서", "birthDate": "1999-03-02",
-                         "phone": "010-1234-5678", "regionId": 12, "agreedTerms": ["SERVICE", "PRIVACY"]}
+                         "phone": "010-1234-5678", "regionId": 1, "agreedTerms": ["SERVICE", "PRIVACY"]}
                         """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value("AUTH_201"))

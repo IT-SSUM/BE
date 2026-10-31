@@ -50,6 +50,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
@@ -92,12 +93,17 @@ class AuthServiceTest {
             organizationVerificationRepository, termsAgreementRepository, regionRepository, passwordEncoder,
             accessTokenProvider, refreshTokenService, emailVerificationStore, businessVerificationStore,
             kakaoLocalClient, new TransactionTemplate(transactionManager), PROPERTIES);
+    private final Region bucheon = mock(Region.class);
+
+    @BeforeEach
+    void setUp() {
+        // 파일럿 지역 경기 부천시 (data.sql 에서 region_id = 1 로 넣는다)
+        when(regionRepository.findById(1L)).thenReturn(Optional.of(bucheon));
+    }
 
     @Test
     void signUpDonorSavesUserDonorAndRequiredTermsThenIssuesTokens() {
-        Region region = mock(Region.class);
         when(emailVerificationStore.peekVerifiedEmail("verify-token")).thenReturn(Optional.of(EMAIL));
-        when(regionRepository.findById(12L)).thenReturn(Optional.of(region));
         when(passwordEncoder.encode("abcd1234")).thenReturn("hashed");
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
@@ -107,7 +113,7 @@ class AuthServiceTest {
         when(accessTokenProvider.issue(1L, UserRole.DONOR)).thenReturn("access");
         when(refreshTokenService.issue(any(User.class), eq(false))).thenReturn("refresh");
 
-        AuthTokenResponse response = service.signUpDonor(signUp(" Donor@Example.com ", "01012345678", 12L,
+        AuthTokenResponse response = service.signUpDonor(signUp(" Donor@Example.com ", "01012345678", 1L,
                 List.of(TermsType.SERVICE, TermsType.PRIVACY, TermsType.ORG_ELIGIBILITY)));
 
         assertEquals(new AuthTokenResponse(1L, UserRole.DONOR, "access", "refresh"), response);
@@ -119,7 +125,7 @@ class AuthServiceTest {
         ArgumentCaptor<Donor> donor = ArgumentCaptor.forClass(Donor.class);
         verify(donorRepository).save(donor.capture());
         assertSame(user.getValue(), donor.getValue().getUser());
-        assertSame(region, donor.getValue().getRegion());
+        assertSame(bucheon, donor.getValue().getRegion());
         assertEquals("최윤서", donor.getValue().getName());
         assertEquals("010-1234-5678", donor.getValue().getPhone());
         @SuppressWarnings("unchecked")
@@ -132,7 +138,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void signUpWithoutRegionAndTenDigitPhone() {
+    void signUpWithoutRegionUsesBucheonAndTenDigitPhone() {
         when(emailVerificationStore.peekVerifiedEmail("verify-token")).thenReturn(Optional.of(EMAIL));
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -140,7 +146,7 @@ class AuthServiceTest {
 
         ArgumentCaptor<Donor> donor = ArgumentCaptor.forClass(Donor.class);
         verify(donorRepository).save(donor.capture());
-        assertNull(donor.getValue().getRegion());
+        assertSame(bucheon, donor.getValue().getRegion());
         assertEquals("011-123-4567", donor.getValue().getPhone());
     }
 
@@ -170,6 +176,16 @@ class AuthServiceTest {
 
         assertError(ErrorCode.REGION_NOT_FOUND, () -> service.signUpDonor(signUp(EMAIL, "01012345678", 99L,
                 List.of(TermsType.SERVICE, TermsType.PRIVACY))));
+    }
+
+    @Test
+    void signUpRejectsRegionOtherThanBucheon() {
+        when(emailVerificationStore.peekVerifiedEmail("verify-token")).thenReturn(Optional.of(EMAIL));
+        when(regionRepository.findById(12L)).thenReturn(Optional.of(mock(Region.class)));
+
+        assertError(ErrorCode.REGION_NOT_SUPPORTED, () -> service.signUpDonor(signUp(EMAIL, "01012345678", 12L,
+                List.of(TermsType.SERVICE, TermsType.PRIVACY))));
+        verify(userRepository, never()).saveAndFlush(any());
     }
 
     @Test

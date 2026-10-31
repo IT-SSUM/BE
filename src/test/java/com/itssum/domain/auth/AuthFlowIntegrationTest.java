@@ -1,5 +1,6 @@
 package com.itssum.domain.auth;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -10,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.itssum.global.infra.mail.EmailSender;
 import com.jayway.jsonpath.JsonPath;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -83,6 +85,16 @@ class AuthFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.role").value("DONOR"));
         String accessToken = read(signUp, "$.data.accessToken");
         String firstRefresh = read(signUp, "$.data.refreshToken");
+
+        // 지역을 고르지 않았으므로 파일럿 지역(경기 부천시, region_id = 1)으로 저장된다
+        Map<String, Object> region = jdbcTemplate.queryForMap("""
+                select d.region_id, r.sido, r.sigungu
+                from donors d join users u on u.user_id = d.user_id join regions r on r.region_id = d.region_id
+                where u.email = ?
+                """, email);
+        assertEquals(1L, region.get("region_id"));
+        assertEquals("경기", region.get("sido"));
+        assertEquals("부천시", region.get("sigungu"));
 
         // 4. 같은 인증 토큰은 다시 쓸 수 없다 (커밋 후 소모)
         perform("/api/auth/donors/sign-up", signUpBody)
