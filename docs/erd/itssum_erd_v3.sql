@@ -103,13 +103,12 @@ CREATE TABLE `organization_verifications` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='기관 사업자 인증 이력';
 
 -- ---------- 기준 데이터 ----------
--- 지역 선택 화면(구 단위) + 거리순 추천의 기준 좌표
+-- 기부자 활동 지역·물품 지역 표시용. 거리 계산은 물품·기관 주소 좌표로 하므로 좌표를 두지 않는다
+-- 파일럿은 경기 부천시 한 곳(region_id = 1)으로 고정하고 src/main/resources/data.sql 이 넣는다
 CREATE TABLE `regions` (
   `region_id`  BIGINT        NOT NULL AUTO_INCREMENT COMMENT '지역 ID',
-  `sido`       VARCHAR(20)   NOT NULL COMMENT '시·도 (서울)',
-  `sigungu`    VARCHAR(30)   NOT NULL COMMENT '시·군·구 (구로구)',
-  `latitude`   DECIMAL(10,7) NOT NULL COMMENT '구 중심 위도',
-  `longitude`  DECIMAL(10,7) NOT NULL COMMENT '구 중심 경도',
+  `sido`       VARCHAR(20)   NOT NULL COMMENT '시·도 (경기)',
+  `sigungu`    VARCHAR(30)   NOT NULL COMMENT '시·군·구 (부천시)',
   PRIMARY KEY (`region_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지역';
 
