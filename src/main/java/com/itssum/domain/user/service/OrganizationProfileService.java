@@ -1,9 +1,13 @@
 package com.itssum.domain.user.service;
 
 import com.itssum.domain.user.dto.request.UpdateOrganizationProfileRequest;
+import com.itssum.domain.user.dto.response.OrganizationDetailResponse;
 import com.itssum.domain.user.dto.response.OrganizationProfileResponse;
 import com.itssum.domain.user.entity.Organization;
+import com.itssum.domain.user.repository.OrganizationRepository;
 import com.itssum.global.common.PhoneNumbers;
+import com.itssum.global.exception.BusinessException;
+import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.infra.kakao.GeoPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,12 +19,23 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class OrganizationProfileService {
 
     private final MemberReader memberReader;
+    private final OrganizationRepository organizationRepository;
     private final AddressGeocoder addressGeocoder;
     private final TransactionTemplate transactionTemplate;
 
     @Transactional(readOnly = true)
     public OrganizationProfileResponse getMine(Long userId) {
         return OrganizationProfileResponse.from(memberReader.activeOrganization(userId));
+    }
+
+    /** 로그인한 회원이면 역할과 상관없이 볼 수 있다. 탈퇴한 기관은 없는 기관처럼 404 로 응답한다. */
+    @Transactional(readOnly = true)
+    public OrganizationDetailResponse getDetail(Long viewerId, Long organizationId) {
+        memberReader.activeUser(viewerId);
+        return organizationRepository.findById(organizationId)
+                .filter(organization -> organization.getUser().isActive())
+                .map(OrganizationDetailResponse::from)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_ORGANIZATION_NOT_FOUND));
     }
 
     /**

@@ -12,10 +12,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.itssum.domain.user.dto.request.UpdateOrganizationProfileRequest;
+import com.itssum.domain.user.dto.response.OrganizationDetailResponse;
 import com.itssum.domain.user.dto.response.OrganizationProfileResponse;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.domain.user.entity.VerificationStatus;
 import com.itssum.domain.user.service.OrganizationProfileService;
+import com.itssum.global.exception.BusinessException;
+import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.security.AccessTokenProvider;
 import com.itssum.support.SecurityTestConfig;
 import java.time.LocalDate;
@@ -92,6 +95,30 @@ class OrganizationControllerTest {
                 .andExpect(jsonPath("$.code").value("COMMON_403"));
 
         verifyNoInteractions(organizationProfileService);
+    }
+
+    @Test
+    void donorCanReadOrganizationDetail() throws Exception {
+        when(organizationProfileService.getDetail(1L, 2L)).thenReturn(new OrganizationDetailResponse(2L,
+                "구로지역아동센터", "02-1234-5678", "서울 구로구 가마산로 12", "2층", null));
+
+        mockMvc.perform(get("/api/organizations/2").header(HttpHeaders.AUTHORIZATION, bearer(1L, UserRole.DONOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("USER_200_4"))
+                .andExpect(jsonPath("$.data.organizationId").value(2))
+                .andExpect(jsonPath("$.data.name").value("구로지역아동센터"))
+                .andExpect(jsonPath("$.data.businessNumber").doesNotExist())
+                .andExpect(jsonPath("$.data.latitude").doesNotExist());
+    }
+
+    @Test
+    void withdrawnOrganizationIs404() throws Exception {
+        when(organizationProfileService.getDetail(1L, 2L))
+                .thenThrow(new BusinessException(ErrorCode.USER_ORGANIZATION_NOT_FOUND));
+
+        mockMvc.perform(get("/api/organizations/2").header(HttpHeaders.AUTHORIZATION, bearer(1L, UserRole.DONOR)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("USER_404"));
     }
 
     private String bearer(Long userId, UserRole role) {

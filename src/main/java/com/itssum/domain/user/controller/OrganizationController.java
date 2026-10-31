@@ -1,6 +1,7 @@
 package com.itssum.domain.user.controller;
 
 import com.itssum.domain.user.dto.request.UpdateOrganizationProfileRequest;
+import com.itssum.domain.user.dto.response.OrganizationDetailResponse;
 import com.itssum.domain.user.dto.response.OrganizationProfileResponse;
 import com.itssum.domain.user.service.OrganizationProfileService;
 import com.itssum.global.common.ApiResponse;
@@ -12,12 +13,14 @@ import java.security.Principal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * /me 는 기관 전용이다. 역할 제한은 SecurityConfig 경로 규칙(/api/organizations/me → ORGANIZATION)으로 건다.
+ * /{organizationId} 는 로그인한 회원 누구나 볼 수 있다.
  */
 @Tag(name = "회원", description = "내 정보 조회·수정, 기관 상세, 회원 탈퇴 API")
 @RestController
@@ -42,6 +45,15 @@ public class OrganizationController {
                                                              @Valid @RequestBody UpdateOrganizationProfileRequest request) {
         return ApiResponse.ok(SuccessCode.USER_ORGANIZATION_PROFILE_UPDATED,
                 organizationProfileService.updateMine(userId(principal), request));
+    }
+
+    @Operation(summary = "기관 상세 조회",
+            description = "기부자가 추천·탐색에서 들어가는 기관 상세의 기관 정보입니다. 로그인한 회원이면 누구나 볼 수 있고, "
+                    + "탈퇴했거나 없는 기관이면 USER_404 입니다.")
+    @GetMapping("/{organizationId}")
+    public ApiResponse<OrganizationDetailResponse> getDetail(Principal principal, @PathVariable Long organizationId) {
+        return ApiResponse.ok(SuccessCode.USER_ORGANIZATION_DETAIL_FOUND,
+                organizationProfileService.getDetail(userId(principal), organizationId));
     }
 
     private static Long userId(Principal principal) {

@@ -2,6 +2,7 @@ package com.itssum.domain.user.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -9,11 +10,15 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.itssum.domain.user.dto.request.UpdateOrganizationProfileRequest;
+import com.itssum.domain.user.dto.response.OrganizationDetailResponse;
 import com.itssum.domain.user.dto.response.OrganizationProfileResponse;
 import com.itssum.domain.user.entity.Organization;
 import com.itssum.domain.user.entity.User;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.domain.user.entity.VerificationStatus;
+import com.itssum.domain.user.repository.OrganizationRepository;
+import com.itssum.global.exception.BusinessException;
+import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.infra.kakao.GeoPoint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,7 +26,9 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.InOrder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -33,10 +40,11 @@ class OrganizationProfileServiceTest {
     private static final GeoPoint NEW_POINT = new GeoPoint(new BigDecimal("37.5034138"), new BigDecimal("126.7660309"));
 
     private final MemberReader memberReader = mock(MemberReader.class);
+    private final OrganizationRepository organizationRepository = mock(OrganizationRepository.class);
     private final AddressGeocoder addressGeocoder = mock(AddressGeocoder.class);
     private final PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
-    private final OrganizationProfileService service = new OrganizationProfileService(memberReader, addressGeocoder,
-            new TransactionTemplate(transactionManager));
+    private final OrganizationProfileService service = new OrganizationProfileService(memberReader,
+            organizationRepository, addressGeocoder, new TransactionTemplate(transactionManager));
 
     private Organization organization;
 
@@ -56,7 +64,34 @@ class OrganizationProfileServiceTest {
                 .longitude(OLD_POINT.longitude())
                 .verifiedAt(LocalDateTime.of(2026, 10, 31, 10, 0))
                 .build();
+        ReflectionTestUtils.setField(organization, "id", 2L);
         when(memberReader.activeOrganization(2L)).thenReturn(organization);
+    }
+
+    @Test
+    void getDetailReturnsPublicFields() {
+        when(organizationRepository.findById(2L)).thenReturn(Optional.of(organization));
+
+        assertEquals(new OrganizationDetailResponse(2L, "구로지역아동센터", "02-1234-5678", ADDRESS, "2층", null),
+                service.getDetail(1L, 2L));
+    }
+
+    @Test
+    void getDetailOfMissingOrWithdrawnOrganizationIs404() {
+        when(organizationRepository.findById(9L)).thenReturn(Optional.empty());
+        assertError(ErrorCode.USER_ORGANIZATION_NOT_FOUND, () -> service.getDetail(1L, 9L));
+
+        organization.getUser().delete();
+        when(organizationRepository.findById(2L)).thenReturn(Optional.of(organization));
+        assertError(ErrorCode.USER_ORGANIZATION_NOT_FOUND, () -> service.getDetail(1L, 2L));
+    }
+
+    @Test
+    void withdrawnViewerIsUnauthorized() {
+        when(memberReader.activeUser(1L)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+        when(organizationRepository.findById(2L)).thenReturn(Optional.of(organization));
+
+        assertError(ErrorCode.UNAUTHORIZED, () -> service.getDetail(1L, 2L));
     }
 
     @Test
@@ -124,5 +159,10 @@ class OrganizationProfileServiceTest {
         assertEquals("031-123-4567", organization.getPhone());
         assertEquals("2층", organization.getAddressDetail());
         assertEquals("김수현", organization.getRepresentativeName());
+    }
+
+    private static void assertError(ErrorCode expected, Executable executable) {
+        BusinessException e = assertThrows(BusinessException.class, executable);
+        assertEquals(expected, e.getErrorCode());
     }
 }
