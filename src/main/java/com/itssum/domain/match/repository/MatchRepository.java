@@ -17,7 +17,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Query("select m from Match m where m.id = :id")
     Optional<Match> findByIdForUpdate(@Param("id") Long id);
 
-    @EntityGraph(attributePaths = {"donationItem", "neededItem", "donor", "organization"})
+    @EntityGraph(attributePaths = {"donationItem", "donationItem.category", "donationItem.region",
+            "neededItem", "neededItem.region", "donor", "organization"})
     @Query("select m from Match m where m.donor.id = :userId or m.organization.id = :userId order by m.createdAt desc, m.id desc")
     List<Match> findAllForUser(@Param("userId") Long userId);
 

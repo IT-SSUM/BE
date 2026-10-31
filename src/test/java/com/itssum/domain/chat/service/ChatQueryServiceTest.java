@@ -169,7 +169,7 @@ class ChatQueryServiceTest {
         when(card.getChatRoom()).thenReturn(room);
         when(card.getSender()).thenReturn(confirmer);
         when(card.getMessageType()).thenReturn(MessageType.APPOINTMENT);
-        when(card.getContent()).thenReturn("{\"deliveryMethod\":\"DIRECT\",\"scheduledAt\":\"2026-11-02T14:00:00\",\"deliveryPlace\":\"기관 입구\",\"receiverName\":null}");
+        when(card.getContent()).thenReturn("{\"deliveryMethod\":\"DIRECT\",\"scheduledAt\":\"2026-11-02T14:00:00\",\"deliveryPlace\":\"기관 입구\",\"receiverName\":null,\"legacyField\":\"ignored\"}");
         when(revised.getChatRoom()).thenReturn(room);
         when(revised.getMessageType()).thenReturn(MessageType.APPOINTMENT);
         when(revised.getContent()).thenReturn("{\"deliveryMethod\":\"DIRECT\",\"scheduledAt\":\"2026-11-03T15:00:00\",\"deliveryPlace\":\"변경된 장소\",\"receiverName\":null}");

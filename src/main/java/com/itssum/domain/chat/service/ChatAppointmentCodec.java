@@ -1,6 +1,7 @@
 package com.itssum.domain.chat.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.itssum.domain.chat.dto.response.ChatAppointmentResponse;
@@ -12,7 +13,8 @@ import org.springframework.stereotype.Component;
 public class ChatAppointmentCodec {
 
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     public String encode(ChatAppointmentResponse appointment) {
         try {
