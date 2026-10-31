@@ -32,7 +32,7 @@ class DonorProfileServiceTest {
     @Test
     void updateChangesOnlyGivenFieldsAndFormatsPhone() {
         Donor donor = donor();
-        when(memberReader.activeDonor(1L)).thenReturn(donor);
+        when(memberReader.lockActiveDonor(1L)).thenReturn(donor);
 
         DonorProfileResponse response = service.update(1L, new UpdateDonorProfileRequest(null, null, "01099998888"));
 
@@ -45,7 +45,7 @@ class DonorProfileServiceTest {
     @Test
     void updateChangesNameAndBirthDate() {
         Donor donor = donor();
-        when(memberReader.activeDonor(1L)).thenReturn(donor);
+        when(memberReader.lockActiveDonor(1L)).thenReturn(donor);
 
         service.update(1L, new UpdateDonorProfileRequest(" 최윤아 ", LocalDate.of(2000, 1, 1), null));
 

@@ -49,7 +49,8 @@ public class WithdrawalService {
 
     @Transactional
     public void withdraw(Long userId) {
-        User user = memberReader.activeUser(userId);
+        // 같은 회원의 정보 수정이 진행 중이면 끝날 때까지 기다린다. 그래야 수정한 값까지 익명화된다
+        User user = memberReader.lockActiveUser(userId);
         LocalDateTime now = LocalDateTime.now();
         if (user.getRole() == UserRole.DONOR) {
             Donor donor = donorRepository.findById(userId)

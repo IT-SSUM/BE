@@ -19,10 +19,10 @@ public class DonorProfileService {
         return DonorProfileResponse.from(memberReader.activeDonor(userId));
     }
 
-    /** 보내지 않은 필드(null)는 그대로 둔다. */
+    /** 보내지 않은 필드(null)는 그대로 둔다. 같은 회원의 탈퇴와 겹치지 않도록 회원 행을 잠그고 읽는다. */
     @Transactional
     public DonorProfileResponse update(Long userId, UpdateDonorProfileRequest request) {
-        Donor donor = memberReader.activeDonor(userId);
+        Donor donor = memberReader.lockActiveDonor(userId);
         donor.updateProfile(
                 request.name() == null ? donor.getName() : request.name().strip(),
                 request.birthDate() == null ? donor.getBirthDate() : request.birthDate(),

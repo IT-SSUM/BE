@@ -56,7 +56,7 @@ class WithdrawalServiceTest {
     void donorWithdrawalAnonymizesAndRevokesEverything() {
         User user = user(1L, UserRole.DONOR);
         Donor donor = donor(user);
-        when(memberReader.activeUser(1L)).thenReturn(user);
+        when(memberReader.lockActiveUser(1L)).thenReturn(user);
         when(donorRepository.findById(1L)).thenReturn(Optional.of(donor));
 
         service.withdraw(1L);
@@ -76,7 +76,7 @@ class WithdrawalServiceTest {
     void organizationWithdrawalAnonymizesAndHidesNeededItems() {
         User user = user(2L, UserRole.ORGANIZATION);
         Organization organization = organization(user);
-        when(memberReader.activeUser(2L)).thenReturn(user);
+        when(memberReader.lockActiveUser(2L)).thenReturn(user);
         when(organizationRepository.findById(2L)).thenReturn(Optional.of(organization));
 
         service.withdraw(2L);
@@ -94,7 +94,7 @@ class WithdrawalServiceTest {
     void withdrawalBlockedWhileUnfinishedMatchExists() {
         User user = user(1L, UserRole.DONOR);
         Donor donor = donor(user);
-        when(memberReader.activeUser(1L)).thenReturn(user);
+        when(memberReader.lockActiveUser(1L)).thenReturn(user);
         when(donorRepository.findById(1L)).thenReturn(Optional.of(donor));
         when(matchRepository.existsByDonorIdAndStatusNotIn(1L, FINISHED)).thenReturn(true);
 

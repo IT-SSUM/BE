@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.itssum.domain.user.entity.Donor;
@@ -64,6 +66,31 @@ class MemberReaderTest {
         when(organizationRepository.findById(2L)).thenReturn(Optional.of(mock(Organization.class)));
 
         assertUnauthorized(() -> reader.activeOrganization(2L));
+    }
+
+    @Test
+    void lockActiveDonorAndOrganizationReadMemberWithLock() {
+        Donor donor = mock(Donor.class);
+        Organization organization = mock(Organization.class);
+        User active = user(true);
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(active));
+        when(donorRepository.findById(1L)).thenReturn(Optional.of(donor));
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
+
+        assertSame(active, reader.lockActiveUser(1L));
+        assertSame(donor, reader.lockActiveDonor(1L));
+        assertSame(organization, reader.lockActiveOrganization(1L));
+        verify(userRepository, never()).findById(1L);
+    }
+
+    @Test
+    void lockActiveUserRejectsMissingAndWithdrawnUser() {
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
+        assertUnauthorized(() -> reader.lockActiveUser(1L));
+
+        User withdrawn = user(false);
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(withdrawn));
+        assertUnauthorized(() -> reader.lockActiveDonor(1L));
     }
 
     private static User user(boolean active) {

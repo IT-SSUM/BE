@@ -49,7 +49,8 @@ public class OrganizationProfileService {
         GeoPoint location = relocated ? addressGeocoder.locate(address).orElse(null) : null;
 
         return transactionTemplate.execute(status -> {
-            Organization organization = memberReader.activeOrganization(userId);
+            // 같은 회원의 탈퇴와 겹치지 않도록 저장할 때만 회원 행을 잠근다 (카카오 호출 중에는 잠그지 않음)
+            Organization organization = memberReader.lockActiveOrganization(userId);
             organization.updateProfile(
                     request.name() == null ? organization.getName() : request.name().strip(),
                     request.phone() == null ? organization.getPhone() : PhoneNumbers.format(request.phone()));

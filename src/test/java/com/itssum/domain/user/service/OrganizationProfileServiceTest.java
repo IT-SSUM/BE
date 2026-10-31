@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +68,7 @@ class OrganizationProfileServiceTest {
                 .build();
         ReflectionTestUtils.setField(organization, "id", 2L);
         when(memberReader.activeOrganization(2L)).thenReturn(organization);
+        when(memberReader.lockActiveOrganization(2L)).thenReturn(organization);
     }
 
     @Test
@@ -109,14 +112,24 @@ class OrganizationProfileServiceTest {
                 new UpdateOrganizationProfileRequest(null, null, " " + NEW_ADDRESS + " ", "3층"));
 
         // 카카오 호출 동안 DB 트랜잭션을 잡지 않는다
-        InOrder order = inOrder(addressGeocoder, transactionManager);
+        InOrder order = inOrder(addressGeocoder, transactionManager, memberReader);
         order.verify(addressGeocoder).locate(NEW_ADDRESS);
         order.verify(transactionManager).getTransaction(any());
+        // 저장은 회원 행을 잠근 뒤에 한다 (같은 회원의 탈퇴와 줄 세우기)
+        order.verify(memberReader).lockActiveOrganization(2L);
         assertEquals(NEW_ADDRESS, organization.getAddress());
         assertEquals("3층", organization.getAddressDetail());
         assertEquals(NEW_POINT.latitude(), organization.getLatitude());
         assertEquals(NEW_POINT.longitude(), organization.getLongitude());
         assertEquals(NEW_ADDRESS, response.address());
+    }
+
+    @Test
+    void updateMineWithoutAddressLocksOnlyInsideTransaction() {
+        service.updateMine(2L, new UpdateOrganizationProfileRequest("구로행복센터", null, null, null));
+
+        verify(memberReader).lockActiveOrganization(2L);
+        verify(memberReader, never()).activeOrganization(2L);
     }
 
     @Test

@@ -15,6 +15,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.itssum.domain.auth.service.EmailVerificationStore;
+import com.itssum.domain.user.dto.request.UpdateDonorProfileRequest;
+import com.itssum.domain.user.service.DonorProfileService;
+import com.itssum.domain.user.service.WithdrawalService;
 import com.itssum.global.infra.kakao.KakaoLocalClient;
 import com.itssum.global.infra.nts.NtsBusinessClient;
 import com.itssum.global.infra.nts.NtsValidation;
@@ -25,6 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +46,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 가입 → 내 정보 수정 → 탈퇴 → 같은 이메일·사업자번호로 다시 가입하는 흐름을 실제 DB 로 확인한다.
@@ -59,6 +68,15 @@ class MemberIntegrationTest {
 
     @Autowired
     private EmailVerificationStore emailVerificationStore;
+
+    @Autowired
+    private DonorProfileService donorProfileService;
+
+    @Autowired
+    private WithdrawalService withdrawalService;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @MockitoBean
     private NtsBusinessClient ntsBusinessClient;
@@ -163,6 +181,46 @@ class MemberIntegrationTest {
         verifyBusiness()
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("AUTH_200_5"));
+    }
+
+    @Test
+    void withdrawalWaitsForProfileUpdateInProgressAndKeepsAnonymization() throws Exception {
+        Long userId = userId(signUpDonor().andExpect(status().isCreated()));
+        CountDownLatch updated = new CountDownLatch(1);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            // B: 수정 트랜잭션이 회원 행을 읽은 뒤에 같은 회원이 탈퇴한다
+            Future<?> withdrawal = executor.submit(() -> {
+                updated.await();
+                withdrawalService.withdraw(userId);
+                return null;
+            });
+            // A: 프로필을 수정하고 커밋 전에 잠시 멈춘다. 잠금이 없으면 이 사이에 탈퇴가 먼저 커밋되고,
+            // A 가 나중에 커밋하면서 익명화된 이름을 "최윤아"로 덮어쓴다
+            transactionTemplate.executeWithoutResult(status -> {
+                donorProfileService.update(userId, new UpdateDonorProfileRequest("최윤아", null, null));
+                updated.countDown();
+                pause(1000);
+            });
+            withdrawal.get(10, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        // 탈퇴가 수정이 끝난 뒤에 실행되어 수정한 이름까지 익명화된다
+        assertEquals("탈퇴한 회원", jdbcTemplate.queryForObject(
+                "select name from donors where user_id = ?", String.class, userId));
+        assertEquals("WITHDRAWN", jdbcTemplate.queryForObject(
+                "select status from users where user_id = ?", String.class, userId));
+    }
+
+    private static void pause(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 
     private ResultActions signUpDonor() throws Exception {
