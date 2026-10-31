@@ -67,12 +67,16 @@ public class AuthService {
     private final TransactionTemplate transactionTemplate;
     private final AuthProperties authProperties;
 
-    /** 이메일 인증 토큰은 커밋이 끝난 뒤에 소모한다. 중간에 실패하면 다시 인증하지 않고 재시도할 수 있다. */
+    /**
+     * 이메일 인증 토큰은 커밋이 끝난 뒤에 소모한다. 중간에 실패하면 다시 인증하지 않고 재시도할 수 있다.
+     * 활동 지역을 고르지 않으면 파일럿 지역(경기 부천시)으로 저장한다.
+     */
     @Transactional
     public AuthTokenResponse signUpDonor(SignUpDonorRequest request) {
         String email = requireVerifiedEmail(request.emailVerificationToken(), request.email());
         requireTerms(request.agreedTerms(), DONOR_REQUIRED_TERMS);
-        Region region = request.regionId() == null ? null : regionRepository.findById(request.regionId())
+        long regionId = request.regionId() == null ? Region.PILOT_REGION_ID : request.regionId();
+        Region region = regionRepository.findById(regionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REGION_NOT_FOUND));
         if (userRepository.existsByEmail(email)) {
             throw new BusinessException(ErrorCode.AUTH_EMAIL_DUPLICATED);
