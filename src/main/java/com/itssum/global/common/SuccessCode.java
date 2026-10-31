@@ -31,6 +31,7 @@ public enum SuccessCode {
     USER_ORGANIZATION_PROFILE_FOUND(HttpStatus.OK, "USER_200_2", "기관 정보를 조회했습니다."),
     USER_ORGANIZATION_PROFILE_UPDATED(HttpStatus.OK, "USER_200_3", "기관 정보를 수정했습니다."),
     USER_ORGANIZATION_DETAIL_FOUND(HttpStatus.OK, "USER_200_4", "기관 상세 정보를 조회했습니다."),
+    USER_WITHDRAWN(HttpStatus.OK, "USER_200_5", "회원 탈퇴가 완료되었습니다."),
 
     // ---------- 물품 ----------
     ITEM_CONDITIONS_FOUND(HttpStatus.OK, "ITEM_200", "물품 상태 기준을 조회했습니다."),

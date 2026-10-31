@@ -38,6 +38,8 @@ public enum ErrorCode {
 
     // ---------- 회원 ----------
     USER_ORGANIZATION_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_404", "기관을 찾을 수 없습니다."),
+    USER_WITHDRAWAL_BLOCKED(HttpStatus.CONFLICT, "USER_409",
+            "진행 중인 거래가 있어 탈퇴할 수 없습니다. 응답 대기 중인 제안·요청과 거래중·예약중인 거래를 먼저 마무리해 주세요."),
 
     // ---------- 기준 데이터 ----------
     REGION_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "REGION_400", "현재는 경기 부천시만 선택할 수 있습니다."),

@@ -68,4 +68,15 @@ public class Donor extends BaseTimeEntity {
         this.birthDate = birthDate;
         this.phone = phone;
     }
+
+    /**
+     * 탈퇴 시 개인정보를 지운다. 이름·생년월일·전화번호는 NOT NULL 이라 자리표시 값으로 덮어쓰고,
+     * 상대방의 나눔 내역에는 "탈퇴한 회원"으로 보인다.
+     */
+    public void anonymize() {
+        this.name = "탈퇴한 회원";
+        this.birthDate = LocalDate.of(1900, 1, 1);
+        this.phone = "000-0000-0000";
+        this.introduction = null;
+    }
 }

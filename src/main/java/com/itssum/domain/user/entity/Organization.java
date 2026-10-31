@@ -119,4 +119,20 @@ public class Organization extends BaseTimeEntity {
     public void changeAddressDetail(String addressDetail) {
         this.addressDetail = addressDetail;
     }
+
+    /**
+     * 탈퇴 시 기관 정보를 지운다. NOT NULL 컬럼은 자리표시 값으로 덮어쓰고, 같은 사업자번호로 다시 가입할 수 있도록
+     * 사업자번호를 문자가 섞인 10자리(W + 회원 ID 9자리)로 바꾼다. 실제 사업자번호는 숫자뿐이라 겹치지 않는다.
+     */
+    public void anonymize() {
+        this.name = "탈퇴한 기관";
+        this.representativeName = "탈퇴";
+        this.phone = "000-0000-0000";
+        this.address = "탈퇴한 기관";
+        this.addressDetail = null;
+        this.introduction = null;
+        this.latitude = null;
+        this.longitude = null;
+        this.businessNumber = String.format("W%09d", id);
+    }
 }
