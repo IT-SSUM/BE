@@ -38,7 +38,7 @@ public class NotificationSetting extends BaseTimeEntity {
 
     @ColumnDefault("true")
     @Column(nullable = false, columnDefinition = "BOOLEAN",
-            comment = "매칭 알림 (제안·요청, 수락·거절, 나눔중, 완료, 취소)")
+            comment = "매칭 알림 (제안·요청, 수락·거절, 예약, 전달 약속, 완료, 취소)")
     private boolean matchEnabled = true;
 
     @ColumnDefault("true")

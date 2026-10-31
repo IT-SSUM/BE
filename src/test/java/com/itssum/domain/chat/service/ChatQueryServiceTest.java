@@ -18,6 +18,7 @@ import com.itssum.domain.chat.entity.ChatMessage;
 import com.itssum.domain.chat.entity.ChatParticipant;
 import com.itssum.domain.chat.entity.ChatRoom;
 import com.itssum.domain.match.entity.Match;
+import com.itssum.domain.match.entity.DeliveryMethod;
 import com.itssum.domain.user.entity.Donor;
 import com.itssum.domain.chat.entity.MessageType;
 import com.itssum.domain.chat.image.ChatImageStorage;
@@ -44,7 +45,7 @@ class ChatQueryServiceTest {
     private final ObjectProvider<ChatImageStorage> imageStorageProvider = mock(ObjectProvider.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final ChatQueryService service = new ChatQueryService(
-            accessService, participants, messages, imageStorageProvider, eventPublisher);
+            accessService, participants, messages, imageStorageProvider, eventPublisher, new ChatAppointmentCodec());
 
     @Test
     void readPointerAdvancesOnlyForMessageInRoom() {
@@ -152,6 +153,34 @@ class ChatQueryServiceTest {
         assertEquals("나눔이 연결됐어요 🌱", donorPage.messages().getFirst().content());
         assertEquals("물품 지원이 연결됐어요 🌱", organizationPage.messages().getFirst().content());
         assertEquals("전달 날짜·장소·방법을 함께 정해 주세요.", donorPage.messages().getFirst().systemDescription());
+    }
+
+    @Test
+    void appointmentCardIsIncludedInMessageHistory() {
+        ChatRoom room = mock(ChatRoom.class);
+        Match match = mock(Match.class);
+        when(room.getId()).thenReturn(1L);
+        when(room.getMatch()).thenReturn(match);
+        when(match.getDeliveryPlace()).thenReturn("변경된 장소");
+        ChatMessage card = mock(ChatMessage.class);
+        ChatMessage revised = mock(ChatMessage.class);
+        User confirmer = mock(User.class);
+        when(confirmer.getId()).thenReturn(20L);
+        when(card.getChatRoom()).thenReturn(room);
+        when(card.getSender()).thenReturn(confirmer);
+        when(card.getMessageType()).thenReturn(MessageType.APPOINTMENT);
+        when(card.getContent()).thenReturn("{\"deliveryMethod\":\"DIRECT\",\"scheduledAt\":\"2026-11-02T14:00:00\",\"deliveryPlace\":\"기관 입구\",\"receiverName\":null}");
+        when(revised.getChatRoom()).thenReturn(room);
+        when(revised.getMessageType()).thenReturn(MessageType.APPOINTMENT);
+        when(revised.getContent()).thenReturn("{\"deliveryMethod\":\"DIRECT\",\"scheduledAt\":\"2026-11-03T15:00:00\",\"deliveryPlace\":\"변경된 장소\",\"receiverName\":null}");
+        when(messages.findRecent(eq(1L), eq(null), any(Pageable.class))).thenReturn(List.of(revised, card));
+
+        ChatMessagePageResponse page = service.messages(1L, 10L, null, 30);
+
+        assertEquals(DeliveryMethod.DIRECT, page.messages().getFirst().appointment().deliveryMethod());
+        assertEquals("변경된 장소", page.messages().getFirst().appointment().deliveryPlace());
+        assertEquals("기관 입구", page.messages().get(1).appointment().deliveryPlace());
+        assertEquals(20L, page.messages().get(1).senderId());
     }
 
     private ChatMessage message(Long id, ChatRoom room, User sender) {

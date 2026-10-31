@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum DonationItemStatus {
 
-    SHARING("나눔중: 가능 수량 남음"),
-    RESERVED("예약중: 남은 수량 0"),
+    RECRUITING("모집중: 신청 가능 수량 남음"),
+    FULL("예약마감: 신청 가능 수량 0"),
     COMPLETED("전달 완료");
 
     private final String description;

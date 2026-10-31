@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 public enum RequesterType {
 
     DONOR("기부 제안"),
-    ORGANIZATION("나눔 요청");
+    ORGANIZATION("기부 요청");
 
     private final String description;
 }

@@ -33,12 +33,19 @@ public enum ErrorCode {
     AUTH_BUSINESS_NUMBER_DUPLICATED(HttpStatus.CONFLICT, "AUTH_409_1", "이미 가입된 사업자번호입니다."),
     AUTH_VERIFICATION_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "AUTH_429", "잠시 후 다시 요청해 주세요."),
     AUTH_MAIL_SEND_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "AUTH_503", "인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요."),
-    AUTH_BUSINESS_VERIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AUTH_503_1",
-            "사업자 확인 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    AUTH_BUSINESS_VERIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AUTH_503_1", "사업자 확인 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
 
     // ---------- 기준 데이터 ----------
     REGION_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "REGION_400", "현재는 경기 부천시만 선택할 수 있습니다."),
     REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "REGION_404", "지역을 찾을 수 없습니다."),
+
+    // ---------- 매칭 ----------
+    MATCH_INVALID_ITEM(HttpStatus.BAD_REQUEST, "MATCH_400", "매칭할 수 없는 물품입니다."),
+    MATCH_NOT_PARTICIPANT(HttpStatus.FORBIDDEN, "MATCH_403", "매칭 당사자만 접근할 수 있습니다."),
+    MATCH_NOT_RECIPIENT(HttpStatus.FORBIDDEN, "MATCH_403_1", "받은 제안·요청만 응답할 수 있습니다."),
+    MATCH_NOT_FOUND(HttpStatus.NOT_FOUND, "MATCH_404", "매칭을 찾을 수 없습니다."),
+    MATCH_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "MATCH_409", "매칭 가능한 수량이 부족합니다."),
+    MATCH_INVALID_STATUS(HttpStatus.CONFLICT, "MATCH_409_1", "현재 상태에서는 요청을 처리할 수 없습니다."),
 
     // ---------- 채팅 ----------
     CHAT_IMAGE_NOT_UPLOADED(HttpStatus.BAD_REQUEST, "CHAT_400", "업로드된 채팅 이미지를 확인할 수 없습니다."),

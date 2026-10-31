@@ -16,7 +16,7 @@ import com.itssum.domain.auth.service.AuthService;
 import com.itssum.domain.auth.service.BusinessVerificationService;
 import com.itssum.domain.auth.service.EmailVerificationService;
 import com.itssum.global.common.ApiResponse;
-import com.itssum.global.common.SuccessCode;
+import com.itssum.global.exception.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
