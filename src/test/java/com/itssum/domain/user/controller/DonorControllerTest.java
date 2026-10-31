@@ -33,6 +33,9 @@ class DonorControllerTest {
     private static final DonorProfileResponse PROFILE = new DonorProfileResponse("donor@example.com", "최윤서",
             LocalDate.of(1999, 3, 2), "010-1234-5678", 1L, "경기 부천시");
 
+    /** 한글 IME 전각 모드나 문서 복사로 들어오는 전각 공백(U+3000) */
+    private static final String FULL_WIDTH_SPACE = String.valueOf((char) 0x3000);
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -77,6 +80,17 @@ class DonorControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"))
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("name")));
+
+        verifyNoInteractions(donorProfileService);
+    }
+
+    @Test
+    void patchMeRejectsFullWidthBlankName() throws Exception {
+        mockMvc.perform(patch("/api/donors/me").header(HttpHeaders.AUTHORIZATION, bearer(UserRole.DONOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"%s\"}".formatted(FULL_WIDTH_SPACE.repeat(2))))
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("name")));
 
         verifyNoInteractions(donorProfileService);

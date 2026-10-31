@@ -1,6 +1,7 @@
 package com.itssum.domain.user.controller;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -37,6 +38,9 @@ class OrganizationControllerTest {
     private static final OrganizationProfileResponse PROFILE = new OrganizationProfileResponse("org@example.com",
             "구로지역아동센터", "김수현", "1234567890", LocalDate.of(2015, 3, 2), "02-1234-5678",
             "서울 구로구 가마산로 12", "2층", VerificationStatus.VERIFIED);
+
+    /** 한글 IME 전각 모드나 문서 복사로 들어오는 전각 공백(U+3000) */
+    private static final String FULL_WIDTH_SPACE = String.valueOf((char) 0x3000);
 
     @Autowired
     private MockMvc mockMvc;
@@ -84,6 +88,19 @@ class OrganizationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"))
                 .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("address")));
+
+        verifyNoInteractions(organizationProfileService);
+    }
+
+    @Test
+    void patchMeRejectsFullWidthBlankNameAndAddress() throws Exception {
+        // 주소가 빈 값으로 바뀌면 좌표까지 지워진다
+        mockMvc.perform(patch("/api/organizations/me").header(HttpHeaders.AUTHORIZATION, bearer(2L, UserRole.ORGANIZATION))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"%s\", \"address\": \"%s\"}"
+                                .formatted(FULL_WIDTH_SPACE, FULL_WIDTH_SPACE)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItems("name", "address")));
 
         verifyNoInteractions(organizationProfileService);
     }
