@@ -20,6 +20,7 @@ import com.itssum.domain.chat.image.ChatImageStorage;
 import com.itssum.domain.chat.repository.ChatMessageRepository;
 import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.MatchStatus;
+import com.itssum.domain.notification.service.NotificationService;
 import com.itssum.domain.user.entity.User;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.global.exception.BusinessException;
@@ -37,10 +38,11 @@ class ChatMessageServiceTest {
     private final ChatAccessService accessService = mock(ChatAccessService.class);
     private final ChatMessageRepository messageRepository = mock(ChatMessageRepository.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final NotificationService notificationService = mock(NotificationService.class);
     @SuppressWarnings("unchecked")
     private final ObjectProvider<ChatImageStorage> imageStorageProvider = mock(ObjectProvider.class);
     private final ChatMessageService service = new ChatMessageService(
-            accessService, messageRepository, eventPublisher, imageStorageProvider);
+            accessService, messageRepository, eventPublisher, imageStorageProvider, notificationService);
 
     private final Match match = mock(Match.class);
     private final User user = User.builder().email("donor@example.com").password("hash")
@@ -69,6 +71,7 @@ class ChatMessageServiceTest {
         assertEquals("안녕하세요", result.content());
         assertEquals("안녕하세요", room.getLastMessageContent());
         assertEquals(50L, result.messageId());
+        verify(notificationService).createForChat(room, user, MessageType.TEXT, "안녕하세요", 50L);
         verify(eventPublisher).publishEvent(any(ChatMessageSentEvent.class));
     }
 
@@ -159,6 +162,7 @@ class ChatMessageServiceTest {
         order.verify(messageRepository).saveAndFlush(any(ChatMessage.class));
         assertEquals("https://example.com/signed-image", result.content());
         assertEquals("https://example.com/signed-thumbnail", result.thumbnailUrl());
-        assertEquals("[사진]", room.getLastMessageContent());
+        assertEquals("사진", room.getLastMessageContent());
+        verify(notificationService).createForChat(room, user, MessageType.IMAGE, key, 50L);
     }
 }

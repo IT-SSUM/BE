@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "알림", description = "서비스 알림 API")
+@Tag(name = "알림", description = "매칭·채팅 알림 API")
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor

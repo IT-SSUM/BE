@@ -1,5 +1,7 @@
 package com.itssum.domain.notification.service;
 
+import com.itssum.domain.chat.entity.ChatRoom;
+import com.itssum.domain.chat.entity.MessageType;
 import com.itssum.domain.match.entity.DeliveryMethod;
 import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.RequesterType;
@@ -52,10 +54,77 @@ public class NotificationService {
                 ? match.getOrganization().getName() : match.getDonor().getName() + " 님";
         String title = titleForMatch(match, type);
         String content = contentForMatch(match, type, item, otherName);
+        saveAndPublish(receiver, type, title, content, NotificationTargetType.MATCH, match.getId(), null);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void createForChat(ChatRoom room, User sender, MessageType messageType, String content, Long messageId) {
+        Match match = room.getMatch();
+        User donor = match.getDonor().getUser();
+        User organization = match.getOrganization().getUser();
+        User receiver;
+        String senderName;
+        if (donor.getId().equals(sender.getId())) {
+            receiver = organization;
+            senderName = match.getDonor().getName() + "님";
+        } else if (organization.getId().equals(sender.getId())) {
+            receiver = donor;
+            senderName = match.getOrganization().getName();
+        } else {
+            throw new BusinessException(ErrorCode.CHAT_NOT_PARTICIPANT);
+        }
+        String subject = senderName + particle(senderName, "이", "가");
+        String description;
+        if (messageType == MessageType.IMAGE) {
+            description = subject + " 사진을 보냈어요.";
+        } else {
+            String prefix = subject + " “";
+            String message = content.replace('\n', ' ').replace('\r', ' ').replaceAll("\\s+", " ").trim();
+            String longestSuffix = "”이라고 보냈어요.";
+            int available = 255 - prefix.codePointCount(0, prefix.length())
+                    - longestSuffix.codePointCount(0, longestSuffix.length());
+            if (message.codePointCount(0, message.length()) > available) {
+                message = limitCodePoints(message, available - 1) + "…";
+            }
+            description = prefix + message + "”" + quotedParticle(message) + " 보냈어요.";
+        }
+        notificationRepository.deleteAll(notificationRepository.findAllByReceiver_IdAndTypeAndTargetTypeAndTargetId(
+                receiver.getId(), NotificationType.CHAT, NotificationTargetType.CHAT_ROOM, room.getId()));
+        saveAndPublish(receiver, NotificationType.CHAT, "새 채팅 메시지", description,
+                NotificationTargetType.CHAT_ROOM, room.getId(), messageId);
+    }
+
+    private String limitCodePoints(String value, int max) {
+        int count = Math.min(value.codePointCount(0, value.length()), max);
+        return value.substring(0, value.offsetByCodePoints(0, count));
+    }
+
+    private String quotedParticle(String message) {
+        for (int end = message.length(); end > 0; ) {
+            int last = message.codePointBefore(end);
+            end -= Character.charCount(last);
+            int type = Character.getType(last);
+            if (Character.isWhitespace(last) || type == Character.OTHER_PUNCTUATION
+                    || type == Character.END_PUNCTUATION || type == Character.FINAL_QUOTE_PUNCTUATION) {
+                continue;
+            }
+            return last >= '가' && last <= '힣' && (last - '가') % 28 != 0 ? "이라고" : "라고";
+        }
+        return "라고";
+    }
+
+    private void saveAndPublish(User receiver, NotificationType type, String title, String content,
+                                NotificationTargetType targetType, Long targetId, Long chatMessageId) {
         Notification saved = notificationRepository.save(Notification.builder()
                 .receiver(receiver).type(type).title(title).content(content)
-                .targetType(NotificationTargetType.MATCH).targetId(match.getId()).build());
+                .targetType(targetType).targetId(targetId).chatMessageId(chatMessageId).build());
         eventPublisher.publishEvent(new NotificationCreatedEvent(receiver.getId(), NotificationResponse.from(saved)));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void markChatReadThrough(Long roomId, Long userId, Long lastReadMessageId) {
+        notificationRepository.markChatReadThrough(userId, roomId, lastReadMessageId, LocalDateTime.now(),
+                NotificationType.CHAT, NotificationTargetType.CHAT_ROOM);
     }
 
     private String titleForMatch(Match match, NotificationType type) {

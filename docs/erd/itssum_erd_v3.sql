@@ -280,6 +280,7 @@ CREATE TABLE `notifications` (
   `content`         VARCHAR(255) NULL     COMMENT '알림 본문',
   `target_type`     VARCHAR(20)  NULL     COMMENT '이동 대상: MATCH | CHAT_ROOM | DONATION_ITEM | NEEDED_ITEM',
   `target_id`       BIGINT       NULL     COMMENT '이동 대상 ID',
+  `chat_message_id` BIGINT       NULL     COMMENT '채팅 알림에 반영된 마지막 메시지 ID',
   `is_read`         BOOLEAN      NOT NULL DEFAULT FALSE COMMENT '읽음 여부',
   `read_at`         DATETIME     NULL     COMMENT '읽은 일시',
   `created_at`      DATETIME     NOT NULL COMMENT '생성 일시',
@@ -406,3 +407,4 @@ CREATE INDEX `IDX_matches_org_status`            ON `matches` (`organization_id`
 CREATE INDEX `IDX_matches_receipt_reminder`        ON `matches` (`status`, `scheduled_at`, `receipt_reminder_sent_at`);
 CREATE INDEX `IDX_chat_messages_room_message`    ON `chat_messages` (`chat_room_id`, `message_id`);
 CREATE INDEX `IDX_notifications_receiver_read`   ON `notifications` (`receiver_id`, `is_read`);
+CREATE INDEX `IDX_notifications_receiver_target` ON `notifications` (`receiver_id`, `type`, `target_type`, `target_id`);

@@ -7,6 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.itssum.domain.item.entity.DonationItem;
+import com.itssum.domain.chat.entity.ChatRoom;
+import com.itssum.domain.chat.entity.MessageType;
 import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.notification.entity.NotificationType;
 import com.itssum.domain.user.entity.Donor;
@@ -94,13 +96,65 @@ class NotificationFlowIntegrationTest {
         assertEquals(2, notifications.list(organizationId, null, 30).notifications().size());
     }
 
+    @Test
+    void chatKeepsOneLatestCardPerRoomAndReadPointerDoesNotClearNewerMessage() {
+        String suffix = UUID.randomUUID().toString();
+        User donor = users.save(User.builder().email("chat-alert-donor-" + suffix + "@example.com")
+                .password("test").role(UserRole.DONOR).build());
+        donorId = donor.getId();
+        User organization = users.save(User.builder().email("chat-alert-org-" + suffix + "@example.com")
+                .password("test").role(UserRole.ORGANIZATION).build());
+        organizationId = organization.getId();
+        ChatRoom room = mock(ChatRoom.class);
+        Match chatMatch = match(donor, organization);
+        when(room.getId()).thenReturn(55L);
+        when(room.getMatch()).thenReturn(chatMatch);
+
+        transactionTemplate.executeWithoutResult(status ->
+                notifications.createForChat(room, donor, MessageType.TEXT, "안녕하세요", 101L));
+        transactionTemplate.executeWithoutResult(status ->
+                notifications.createForChat(room, donor, MessageType.TEXT, "내일 뵐게요", 102L));
+
+        var page = notifications.list(organizationId, null, 30);
+        assertEquals(1, page.notifications().size());
+        assertEquals("최윤서님이 “내일 뵐게요”라고 보냈어요.", page.notifications().getFirst().content());
+        assertEquals(55L, page.notifications().getFirst().targetId());
+        assertEquals(1, notifications.unreadCount(organizationId).unreadCount());
+
+        transactionTemplate.executeWithoutResult(status ->
+                notifications.markChatReadThrough(55L, organizationId, 101L));
+        assertEquals(1, notifications.unreadCount(organizationId).unreadCount());
+        transactionTemplate.executeWithoutResult(status ->
+                notifications.markChatReadThrough(55L, organizationId, 102L));
+        assertEquals(0, notifications.unreadCount(organizationId).unreadCount());
+
+        transactionTemplate.executeWithoutResult(status ->
+                notifications.createForChat(room, donor, MessageType.IMAGE, "chat/55/image.jpg", 103L));
+        assertEquals(1, notifications.list(organizationId, null, 30).notifications().size());
+        assertEquals("최윤서님이 사진을 보냈어요.",
+                notifications.list(organizationId, null, 30).notifications().getFirst().content());
+        assertEquals(1, notifications.unreadCount(organizationId).unreadCount());
+
+        transactionTemplate.executeWithoutResult(status ->
+                notifications.createForChat(room, organization, MessageType.TEXT, "반갑습니다", 104L));
+        assertEquals("구로지역아동센터가 “반갑습니다”라고 보냈어요.",
+                notifications.list(donorId, null, 30).notifications().getFirst().content());
+
+        transactionTemplate.executeWithoutResult(status ->
+                notifications.createForChat(room, donor, MessageType.TEXT, "책!", 105L));
+        assertEquals("최윤서님이 “책!”이라고 보냈어요.",
+                notifications.list(organizationId, null, 30).notifications().getFirst().content());
+    }
+
     private Match match(User donorUser, User organizationUser) {
         Donor donor = mock(Donor.class);
         Organization organization = mock(Organization.class);
         DonationItem item = mock(DonationItem.class);
         Match match = mock(Match.class);
         when(donor.getUser()).thenReturn(donorUser);
+        when(donor.getName()).thenReturn("최윤서");
         when(organization.getUser()).thenReturn(organizationUser);
+        when(organization.getName()).thenReturn("구로지역아동센터");
         when(match.getDonor()).thenReturn(donor);
         when(match.getOrganization()).thenReturn(organization);
         when(match.getDonationItem()).thenReturn(item);

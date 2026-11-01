@@ -30,7 +30,10 @@ import org.hibernate.type.SqlTypes;
 @Table(
         name = "notifications",
         comment = "알림",
-        indexes = @Index(name = "IDX_notifications_receiver_read", columnList = "receiver_id, is_read")
+        indexes = {
+                @Index(name = "IDX_notifications_receiver_read", columnList = "receiver_id, is_read"),
+                @Index(name = "IDX_notifications_receiver_target", columnList = "receiver_id, type, target_type, target_id")
+        }
 )
 public class Notification extends BaseCreatedTimeEntity {
 
@@ -67,6 +70,9 @@ public class Notification extends BaseCreatedTimeEntity {
     @Column(comment = "이동 대상 ID")
     private Long targetId;
 
+    @Column(comment = "채팅 알림에 반영된 마지막 메시지 ID")
+    private Long chatMessageId;
+
     @ColumnDefault("false")
     @Column(nullable = false, columnDefinition = "BOOLEAN", comment = "읽음 여부")
     private boolean isRead = false;
@@ -76,13 +82,14 @@ public class Notification extends BaseCreatedTimeEntity {
 
     @Builder
     private Notification(User receiver, NotificationType type, String title, String content,
-                         NotificationTargetType targetType, Long targetId) {
+                         NotificationTargetType targetType, Long targetId, Long chatMessageId) {
         this.receiver = receiver;
         this.type = type;
         this.title = title;
         this.content = content;
         this.targetType = targetType;
         this.targetId = targetId;
+        this.chatMessageId = chatMessageId;
     }
 
     public void markRead() {
