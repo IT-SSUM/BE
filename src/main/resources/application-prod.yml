@@ -3,3 +3,10 @@
 server:
   # 호스트 Nginx 뒤에서 X-Forwarded-* 헤더로 원래 요청의 IP·프로토콜을 인식한다
   forward-headers-strategy: native
+
+storage:
+  s3:
+    # 버킷 이름·리전은 비밀값이 아니라 여기에 둔다. 자격 증명은 EC2 역할(itssum-ec2-s3)에서 받는다.
+    # 로컬·테스트에는 버킷 설정이 없어 S3 빈을 만들지 않는다 (채팅 이미지 API는 503).
+    bucket: itssum-images-6318
+    region: ap-northeast-2

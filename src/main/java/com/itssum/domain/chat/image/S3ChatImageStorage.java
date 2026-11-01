@@ -2,6 +2,7 @@ package com.itssum.domain.chat.image;
 
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
+import com.itssum.global.infra.s3.ConditionalOnS3Bucket;
 import com.itssum.global.infra.s3.S3ObjectStorage;
 import com.itssum.global.infra.s3.S3ObjectStorage.StoredObjectMetadata;
 import java.util.Map;
@@ -9,12 +10,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /** 채팅 전용 파일 형식과 채팅방 key 규칙. 실제 S3 처리는 global.infra.s3에 맡긴다. */
 @Component
-@ConditionalOnProperty(prefix = "storage.s3", name = "bucket")
+@ConditionalOnS3Bucket
 @RequiredArgsConstructor
 public class S3ChatImageStorage implements ChatImageStorage {
 

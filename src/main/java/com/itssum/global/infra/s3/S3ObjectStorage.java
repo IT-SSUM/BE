@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -19,7 +18,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 
 /** 도메인에 관계없는 S3 서명 URL과 객체 조회. 접근 권한과 key 규칙은 각 도메인에서 판단한다. */
 @Component
-@ConditionalOnProperty(prefix = "storage.s3", name = "bucket")
+@ConditionalOnS3Bucket
 @RequiredArgsConstructor
 public class S3ObjectStorage {
 
