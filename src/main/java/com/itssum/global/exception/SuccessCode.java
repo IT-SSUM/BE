@@ -51,7 +51,13 @@ public enum SuccessCode {
     CHAT_ROOMS_FOUND(HttpStatus.OK, "CHAT_200", "채팅방 목록을 조회했습니다."),
     CHAT_MESSAGES_FOUND(HttpStatus.OK, "CHAT_200_1", "채팅 메시지 내역을 조회했습니다."),
     CHAT_READ_MARKED(HttpStatus.OK, "CHAT_200_2", "채팅 메시지를 읽음 처리했습니다."),
-    CHAT_IMAGE_UPLOAD_URL_ISSUED(HttpStatus.OK, "CHAT_200_3", "이미지 업로드 URL을 발급했습니다.");
+    CHAT_IMAGE_UPLOAD_URL_ISSUED(HttpStatus.OK, "CHAT_200_3", "이미지 업로드 URL을 발급했습니다."),
+
+    // ---------- 알림 ----------
+    NOTIFICATION_LIST_FOUND(HttpStatus.OK, "NOTIFICATION_200", "알림 목록을 조회했습니다."),
+    NOTIFICATION_UNREAD_COUNT_FOUND(HttpStatus.OK, "NOTIFICATION_200_1", "안 읽은 알림 수를 조회했습니다."),
+    NOTIFICATION_READ(HttpStatus.OK, "NOTIFICATION_200_2", "알림을 읽음 처리했습니다."),
+    NOTIFICATION_ALL_READ(HttpStatus.OK, "NOTIFICATION_200_3", "알림을 모두 읽음 처리했습니다.");
 
     private final HttpStatus status;
     private final String code;

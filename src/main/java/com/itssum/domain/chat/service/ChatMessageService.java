@@ -8,6 +8,7 @@ import com.itssum.domain.chat.entity.MessageType;
 import com.itssum.domain.chat.event.ChatMessageSentEvent;
 import com.itssum.domain.chat.image.ChatImageStorage;
 import com.itssum.domain.chat.repository.ChatMessageRepository;
+import com.itssum.domain.notification.service.NotificationService;
 import com.itssum.domain.user.entity.User;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
@@ -25,6 +26,7 @@ public class ChatMessageService {
     private final ChatMessageRepository messageRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectProvider<ChatImageStorage> imageStorageProvider;
+    private final NotificationService notificationService;
 
     @Transactional
     public ChatMessageResponse send(Long roomId, User sender, SendChatMessageRequest request) {
@@ -43,12 +45,13 @@ public class ChatMessageService {
                 .messageType(request.messageType())
                 .content(content)
                 .build());
-        room.updateLastMessage(request.messageType() == MessageType.IMAGE ? "[사진]" : preview(content),
+        room.updateLastMessage(request.messageType() == MessageType.IMAGE ? "사진" : preview(content),
                 message.getCreatedAt());
         ChatMessageResponse response = imageStorage == null
                 ? ChatMessageResponse.from(message, content)
                 : ChatMessageResponse.image(message, imageStorage.presignRead(content),
                         imageStorage.presignThumbnailRead(content));
+        notificationService.createForChat(room, sender, request.messageType(), content, message.getId());
         eventPublisher.publishEvent(new ChatMessageSentEvent(response));
         return response;
     }

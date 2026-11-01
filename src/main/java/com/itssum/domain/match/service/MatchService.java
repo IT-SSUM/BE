@@ -19,6 +19,8 @@ import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.MatchStatus;
 import com.itssum.domain.match.entity.RequesterType;
 import com.itssum.domain.match.repository.MatchRepository;
+import com.itssum.domain.notification.entity.NotificationType;
+import com.itssum.domain.notification.service.NotificationService;
 import com.itssum.domain.user.entity.User;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.global.exception.BusinessException;
@@ -41,6 +43,7 @@ public class MatchService {
     private final NeededItemRepository neededItemRepository;
     private final ChatRoomService chatRoomService;
     private final ChatRoomRepository chatRoomRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public MatchCreatedResponse create(User actor, CreateMatchRequest request) {
@@ -71,6 +74,7 @@ public class MatchService {
                 .donationItem(donation).neededItem(needed).donor(donation.getDonor())
                 .organization(needed.getOrganization()).requestedBy(requester)
                 .quantity(request.quantity()).message(request.message()).build());
+        notificationService.createForMatch(match, actor, NotificationType.MATCH_REQUESTED);
         return MatchCreatedResponse.from(match);
     }
 
@@ -86,6 +90,7 @@ public class MatchService {
         }
         match.accept();
         Long chatRoomId = chatRoomService.createForMatch(match).getId();
+        notificationService.createForMatch(match, actor, NotificationType.MATCH_ACCEPTED);
         return MatchAcceptedResponse.from(match, chatRoomId);
     }
 
@@ -95,6 +100,7 @@ public class MatchService {
         requireRecipient(match, actor);
         requireStatus(match, MatchStatus.PENDING);
         match.reject();
+        notificationService.createForMatch(match, actor, NotificationType.MATCH_REJECTED);
         return MatchRejectedResponse.from(match);
     }
 
@@ -137,6 +143,7 @@ public class MatchService {
         donation.reserve(match.getQuantity());
         needed.reserve(match.getQuantity());
         match.reserve();
+        notificationService.createForMatch(match, actor, NotificationType.MATCH_RESERVED);
         return responseWithRoom(match);
     }
 
@@ -150,6 +157,7 @@ public class MatchService {
         lockDonation(match).complete(match.getQuantity());
         lockNeeded(match).complete(match.getQuantity());
         match.complete();
+        notificationService.createForMatch(match, actor, NotificationType.MATCH_COMPLETED);
         return responseWithRoom(match);
     }
 
@@ -164,6 +172,7 @@ public class MatchService {
             lockNeeded(match).release(match.getQuantity());
         }
         match.cancel(actor, reason);
+        notificationService.createForMatch(match, actor, NotificationType.MATCH_CANCELED);
         return responseWithRoom(match);
     }
 
@@ -176,6 +185,7 @@ public class MatchService {
         match.confirmAppointment(request.deliveryMethod(), scheduledAt,
                 request.deliveryPlace().trim(), request.receiverName());
         chatRoomService.createAppointmentCard(match, actor);
+        notificationService.createForMatch(match, actor, NotificationType.MATCH_SCHEDULED);
         return responseWithRoom(match);
     }
 

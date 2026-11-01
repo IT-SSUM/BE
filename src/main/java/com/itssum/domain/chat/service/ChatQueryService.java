@@ -14,6 +14,7 @@ import com.itssum.domain.chat.image.ChatImageStorage;
 import com.itssum.domain.chat.repository.ChatMessageRepository;
 import com.itssum.domain.chat.repository.ChatParticipantRepository;
 import com.itssum.domain.match.entity.Match;
+import com.itssum.domain.notification.service.NotificationService;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import java.util.Comparator;
@@ -35,6 +36,7 @@ public class ChatQueryService {
     private final ObjectProvider<ChatImageStorage> imageStorageProvider;
     private final ApplicationEventPublisher eventPublisher;
     private final ChatAppointmentCodec appointmentCodec;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<ChatRoomResponse> list(Long userId) {
@@ -77,6 +79,7 @@ public class ChatQueryService {
         Long previous = participant.getLastReadMessageId();
         participant.markReadThrough(lastReadMessageId);
         if (previous == null || lastReadMessageId > previous) {
+            notificationService.markChatReadThrough(roomId, userId, lastReadMessageId);
             eventPublisher.publishEvent(new ChatReadReceiptUpdatedEvent(roomId, userId, lastReadMessageId));
         }
     }
