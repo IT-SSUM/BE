@@ -192,6 +192,7 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 - `ListBucket`이 없으면 S3가 없는 객체 조회에 404 대신 403을 돌려줘서, 업로드 확인에서 "아직 안 올라옴"을 구분하지 못합니다.
 - 서버가 Docker 컨테이너 안에서 EC2 메타데이터(IMDSv2)로 자격 증명을 받기 때문에 인스턴스의 메타데이터 홉 제한을 2로 둡니다.
 - 로컬·테스트에는 버킷 설정이 없어 S3 빈이 만들어지지 않고, 채팅 이미지 API는 503(`CHAT_IMAGE_STORAGE_UNAVAILABLE`)을 돌려줍니다. 이미지 흐름은 운영 서버에서 확인합니다.
+- 이미지 메시지를 보낼 때 업로드된 객체의 크기(10MB 이하)·Content-Type과 파일 앞 12바이트의 형식 시그니처(JPEG·PNG·WebP)를 확인합니다. 선언한 형식과 실제 파일이 다르면 객체를 지우고 거절합니다.
 - 업로드 URL만 받고 메시지를 보내지 않은 파일은 지우지 않고 남겨 둡니다 (파일럿 범위).
 
 **채팅 썸네일 Lambda**
@@ -205,7 +206,8 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 
 - 이미지 메시지 응답의 `thumbnailUrl`이 이 썸네일의 서명 URL입니다. 서버는 썸네일이 있는지 확인하지 않으므로, FE는 썸네일을 못 불러오면 `content`의 원본 URL로 바꿔 보여줍니다.
 - 결과를 `thumbnails/`에 쓰기 때문에 트리거(`chat/`)가 다시 실행되지 않습니다.
-- 함수 코드는 이 레포에 올리지 않습니다 (`lambda/`는 gitignore). 코드를 바꾸면 `lambda/chat-thumbnail`에서 sharp를 리눅스용으로 받아 zip으로 묶고 Lambda 콘솔 코드 탭에서 .zip 파일로 올립니다. zip 안의 경로 구분자가 `/`여야 해서 Windows `Compress-Archive` 대신 Python `zipfile`로 묶습니다.
+- 함수 코드는 이 레포에 올리지 않습니다 (`lambda/`는 gitignore). 원본 소스는 담당자 PC의 `lambda/chat-thumbnail/`에만 있고, 배포된 코드가 기준입니다. 다른 사람이 고칠 때는 Lambda 콘솔에서 함수 코드를 .zip으로 내려받아 `lambda/chat-thumbnail/`에 풀고 시작합니다.
+- 코드를 바꾸면 `lambda/chat-thumbnail`에서 sharp를 리눅스용으로 받아 zip으로 묶고 Lambda 콘솔 코드 탭에서 .zip 파일로 올립니다. zip 안의 경로 구분자가 `/`여야 해서 Windows `Compress-Archive` 대신 Python `zipfile`로 묶습니다.
 
 ```bash
 cd lambda/chat-thumbnail
