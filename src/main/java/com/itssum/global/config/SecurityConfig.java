@@ -3,11 +3,14 @@ package com.itssum.global.config;
 import com.itssum.global.security.JwtConfig;
 import com.itssum.global.security.PublicPathBearerTokenResolver;
 import com.itssum.global.security.RestSecurityErrorHandler;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,6 +18,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -46,10 +52,15 @@ public class SecurityConfig {
     private final JwtAuthenticationConverter jwtAuthenticationConverter;
     private final JsonMapper jsonMapper;
 
+    // 브라우저에서 API를 부를 수 있는 FE 출처 (application.yml cors.allowed-origins)
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         RestSecurityErrorHandler errorHandler = new RestSecurityErrorHandler(jsonMapper);
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -76,6 +87,19 @@ public class SecurityConfig {
                         .authenticationEntryPoint(errorHandler)
                         .accessDeniedHandler(errorHandler));
         return http.build();
+    }
+
+    /** 토큰은 Authorization 헤더와 요청 본문으로 주고받으므로 쿠키(자격 증명)는 허용하지 않는다. */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration cors = new CorsConfiguration();
+        cors.setAllowedOrigins(allowedOrigins);
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cors.setAllowedHeaders(List.of("*"));
+        cors.setMaxAge(3600L);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", cors);
+        return source;
     }
 
     @Bean

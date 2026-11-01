@@ -41,6 +41,14 @@ spring:
       mail.smtp.timeout: 5000
       mail.smtp.writetimeout: 5000
 
+# 브라우저에서 API·채팅 WebSocket 을 부를 수 있는 FE 출처 (쉼표로 구분). FE 배포 주소가 정해지면 추가한다
+cors:
+  allowed-origins: http://localhost:3000,http://localhost:5173
+
+chat:
+  websocket:
+    allowed-origins: ${cors.allowed-origins}
+
 management:
   endpoints:
     web:
