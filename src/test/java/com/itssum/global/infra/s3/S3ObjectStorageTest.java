@@ -54,4 +54,21 @@ class S3ObjectStorageTest {
             assertTrue(query.contains("if-none-match"));
         }
     }
+
+    @Test
+    void readUrlLastsOneHourAndUploadUrlTenMinutes() {
+        try (S3Presigner presigner = S3Presigner.builder()
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("access", "secret")))
+                .region(Region.AP_NORTHEAST_2)
+                .build()) {
+            S3ObjectStorage storage = new S3ObjectStorage(mock(S3Client.class), presigner);
+            ReflectionTestUtils.setField(storage, "bucket", "example-bucket");
+
+            String readQuery = URI.create(storage.presignDownload("chat/42/image.jpg")).getRawQuery();
+            String uploadQuery = URI.create(storage.presignUpload("chat/42/image.jpg", "image/jpeg")).getRawQuery();
+
+            assertTrue(readQuery.contains("X-Amz-Expires=3600"));
+            assertTrue(uploadQuery.contains("X-Amz-Expires=600"));
+        }
+    }
 }
