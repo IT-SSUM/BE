@@ -58,6 +58,19 @@ public class S3ObjectStorage {
         }
     }
 
+    /** 확인한 객체(eTag)의 앞부분만 읽는다. 없거나 그사이 바뀐 객체면 빈 배열. */
+    public byte[] readHead(String key, String eTag, int length) {
+        try {
+            return s3Client.getObjectAsBytes(GetObjectRequest.builder()
+                    .bucket(bucket).key(key).ifMatch(eTag).range("bytes=0-" + (length - 1)).build()).asByteArray();
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404 || e.statusCode() == 412) {
+                return new byte[0];
+            }
+            throw e;
+        }
+    }
+
     public void delete(String key, String eTag) {
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder()

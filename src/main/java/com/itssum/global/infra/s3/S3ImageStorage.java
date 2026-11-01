@@ -3,6 +3,7 @@ package com.itssum.global.infra.s3;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.infra.s3.S3ObjectStorage.StoredObjectMetadata;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +27,12 @@ public class S3ImageStorage {
             "image/webp", "webp");
     private static final Pattern IMAGE_FILE = Pattern.compile("[0-9a-f-]{36}\\.(jpg|png|webp)");
     private static final Pattern IMAGE_EXTENSION = Pattern.compile("\\.(jpg|png|webp)$");
+    // 파일 앞부분의 형식 시그니처. WebP는 RIFF(0~3) + WEBP(8~11)
+    private static final int SIGNATURE_BYTES = 12;
+    private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+    private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+    private static final byte[] RIFF_SIGNATURE = {'R', 'I', 'F', 'F'};
+    private static final byte[] WEBP_SIGNATURE = {'W', 'E', 'B', 'P'};
 
     private final S3ObjectStorage storage;
 
@@ -38,7 +45,10 @@ public class S3ImageStorage {
                 Map.of("Content-Type", contentType, "If-None-Match", "*"));
     }
 
-    /** 소유자 경로의 key이고 S3에 올라온 객체가 이미지 규칙에 맞으면 true. 규칙에 어긋난 객체는 지운다. */
+    /**
+     * 소유자 경로의 key이고 S3에 올라온 객체가 이미지 규칙(크기, Content-Type, 실제 파일 형식)에 맞으면 true.
+     * 규칙에 어긋난 객체는 지운다.
+     */
     public boolean verifyUploaded(String prefix, Long ownerId, String objectKey) {
         String ownerPath = prefix + "/" + ownerId + "/";
         if (objectKey == null || !objectKey.startsWith(ownerPath)
@@ -51,7 +61,8 @@ public class S3ImageStorage {
         }
         StoredObjectMetadata object = found.get();
         if (object.size() == null || object.size() == 0 || object.size() > MAX_IMAGE_BYTES
-                || !isImageType(object.contentType())) {
+                || !isImageType(object.contentType())
+                || !matchesSignature(object.contentType(), storage.readHead(objectKey, object.eTag(), SIGNATURE_BYTES))) {
             if (object.eTag() != null && !object.eTag().isBlank()) {
                 storage.delete(objectKey, object.eTag());
             }
@@ -76,5 +87,20 @@ public class S3ImageStorage {
 
     private static boolean isImageType(String contentType) {
         return contentType != null && EXTENSIONS.containsKey(contentType);
+    }
+
+    /** 선언한 Content-Type과 실제 파일 시그니처가 같은 형식인지 확인한다. */
+    private static boolean matchesSignature(String contentType, byte[] head) {
+        return switch (contentType) {
+            case "image/jpeg" -> startsWith(head, 0, JPEG_SIGNATURE);
+            case "image/png" -> startsWith(head, 0, PNG_SIGNATURE);
+            case "image/webp" -> startsWith(head, 0, RIFF_SIGNATURE) && startsWith(head, 8, WEBP_SIGNATURE);
+            default -> false;
+        };
+    }
+
+    private static boolean startsWith(byte[] data, int offset, byte[] expected) {
+        return data.length >= offset + expected.length
+                && Arrays.equals(data, offset, offset + expected.length, expected, 0, expected.length);
     }
 }
