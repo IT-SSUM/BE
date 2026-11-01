@@ -1,6 +1,7 @@
 package com.itssum.domain.auth.dto.request;
 
 import com.itssum.domain.user.entity.TermsType;
+import com.itssum.global.common.PhoneNumbers;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -34,8 +35,7 @@ public record SignUpOrganizationRequest(
         @Schema(description = "개업일자 (사업자 확인 때와 같아야 함)", example = "2015-03-02")
         @NotNull @PastOrPresent LocalDate openingDate,
         @Schema(description = "기관 전화번호. 지역번호 포함, 하이픈은 없어도 된다", example = "02-1234-5678")
-        @NotBlank @Pattern(regexp = "^(0\\d{1,2}-?\\d{3,4}-?\\d{4}|1\\d{3}-?\\d{4})$",
-                message = "전화번호 형식이 올바르지 않습니다.")
+        @NotBlank @Pattern(regexp = PhoneNumbers.CONTACT_REGEX, message = "전화번호 형식이 올바르지 않습니다.")
         String phone,
         @Schema(description = "기관 주소 (우편번호 검색 결과의 도로명 주소)", example = "서울 구로구 가마산로 12")
         @NotBlank @Size(max = 255) String address,

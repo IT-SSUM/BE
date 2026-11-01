@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
+import com.itssum.global.infra.s3.S3ImageStorage;
 import com.itssum.global.infra.s3.S3ObjectStorage;
 import com.itssum.global.infra.s3.S3ObjectStorage.StoredObjectMetadata;
 import java.util.Optional;
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.Test;
 class S3ChatImageStorageTest {
 
     private final S3ObjectStorage storage = mock(S3ObjectStorage.class);
-    private final S3ChatImageStorage images = new S3ChatImageStorage(storage);
+    private final S3ChatImageStorage images = new S3ChatImageStorage(new S3ImageStorage(storage));
 
     @Test
     void uploadKeyIsScopedToChatRoom() {

@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -19,11 +18,13 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 
 /** 도메인에 관계없는 S3 서명 URL과 객체 조회. 접근 권한과 key 규칙은 각 도메인에서 판단한다. */
 @Component
-@ConditionalOnProperty(prefix = "storage.s3", name = "bucket")
+@ConditionalOnS3Bucket
 @RequiredArgsConstructor
 public class S3ObjectStorage {
 
-    private static final Duration URL_LIFETIME = Duration.ofMinutes(10);
+    private static final Duration UPLOAD_URL_LIFETIME = Duration.ofMinutes(10);
+    // 채팅방을 열어 둔 동안 이미지가 깨지지 않도록 조회 URL은 길게 둔다
+    private static final Duration READ_URL_LIFETIME = Duration.ofHours(1);
 
     private final S3Client s3Client;
     private final S3Presigner presigner;
@@ -35,13 +36,13 @@ public class S3ObjectStorage {
         PutObjectRequest put = PutObjectRequest.builder()
                 .bucket(bucket).key(key).contentType(contentType).ifNoneMatch("*").build();
         return presigner.presignPutObject(PutObjectPresignRequest.builder()
-                .signatureDuration(URL_LIFETIME).putObjectRequest(put).build()).url().toString();
+                .signatureDuration(UPLOAD_URL_LIFETIME).putObjectRequest(put).build()).url().toString();
     }
 
     public String presignDownload(String key) {
         GetObjectRequest get = GetObjectRequest.builder().bucket(bucket).key(key).build();
         return presigner.presignGetObject(GetObjectPresignRequest.builder()
-                .signatureDuration(URL_LIFETIME).getObjectRequest(get).build()).url().toString();
+                .signatureDuration(READ_URL_LIFETIME).getObjectRequest(get).build()).url().toString();
     }
 
     public Optional<StoredObjectMetadata> find(String key) {
@@ -52,6 +53,19 @@ public class S3ObjectStorage {
         } catch (S3Exception e) {
             if (e.statusCode() == 404) {
                 return Optional.empty();
+            }
+            throw e;
+        }
+    }
+
+    /** 확인한 객체(eTag)의 앞부분만 읽는다. 없거나 그사이 바뀐 객체면 빈 배열. */
+    public byte[] readHead(String key, String eTag, int length) {
+        try {
+            return s3Client.getObjectAsBytes(GetObjectRequest.builder()
+                    .bucket(bucket).key(key).ifMatch(eTag).range("bytes=0-" + (length - 1)).build()).asByteArray();
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404 || e.statusCode() == 412) {
+                return new byte[0];
             }
             throw e;
         }

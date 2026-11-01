@@ -7,14 +7,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum NotificationType {
 
-    MATCH_REQUESTED("새 제안·요청"),
-    MATCH_RESERVED("수락"),
-    MATCH_REJECTED("거절"),
-    MATCH_SCHEDULED("전달 일정 확정"),
-    MATCH_SHARING("전달 준비 시작"),
+    MATCH_REQUESTED("새 기부 제안·요청"),
+    MATCH_ACCEPTED("기부 제안·요청 수락"),
+    MATCH_REJECTED("기부 제안·요청 거절"),
+    MATCH_RESERVED("기부자 임시 예약"),
+    MATCH_SCHEDULED("전달 약속 확정·변경"),
     MATCH_RECEIVE_REQUIRED("수령 확인 요청"),
     MATCH_COMPLETED("전달 완료"),
-    MATCH_CANCELED("취소·수량 복원"),
+    MATCH_CANCELED("거래 취소"),
     CHAT("채팅");
 
     private final String description;

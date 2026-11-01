@@ -6,7 +6,7 @@ import com.itssum.domain.chat.image.PresignedChatImageUpload;
 import com.itssum.domain.chat.service.ChatAccessService;
 import com.itssum.domain.chat.service.ChatUserResolver;
 import com.itssum.global.common.ApiResponse;
-import com.itssum.global.common.SuccessCode;
+import com.itssum.global.exception.SuccessCode;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;

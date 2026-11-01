@@ -72,4 +72,15 @@ public class User extends BaseTimeEntity {
     public void delete() {
         this.deletedAt = LocalDateTime.now();
     }
+
+    /**
+     * 회원 탈퇴. 같은 이메일로 다시 가입할 수 있도록 이메일을 회원마다 다른 자리표시 값으로 바꾸고(.invalid 는 실제로 쓰일 수 없는 도메인),
+     * 비밀번호는 BCrypt 형식이 아닌 값으로 바꿔 어떤 비밀번호와도 맞지 않게 한다.
+     */
+    public void withdraw() {
+        this.email = "withdrawn-" + id + "@itssum.invalid";
+        this.password = "WITHDRAWN";
+        this.status = UserStatus.WITHDRAWN;
+        this.deletedAt = LocalDateTime.now();
+    }
 }

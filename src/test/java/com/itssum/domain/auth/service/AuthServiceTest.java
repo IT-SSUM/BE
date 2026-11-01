@@ -38,11 +38,10 @@ import com.itssum.domain.user.repository.OrganizationRepository;
 import com.itssum.domain.user.repository.OrganizationVerificationRepository;
 import com.itssum.domain.user.repository.TermsAgreementRepository;
 import com.itssum.domain.user.repository.UserRepository;
+import com.itssum.domain.user.service.AddressGeocoder;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.infra.kakao.GeoPoint;
-import com.itssum.global.infra.kakao.KakaoApiException;
-import com.itssum.global.infra.kakao.KakaoLocalClient;
 import com.itssum.global.security.AccessTokenProvider;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -87,12 +86,12 @@ class AuthServiceTest {
     private final RefreshTokenService refreshTokenService = mock(RefreshTokenService.class);
     private final EmailVerificationStore emailVerificationStore = mock(EmailVerificationStore.class);
     private final BusinessVerificationStore businessVerificationStore = mock(BusinessVerificationStore.class);
-    private final KakaoLocalClient kakaoLocalClient = mock(KakaoLocalClient.class);
+    private final AddressGeocoder addressGeocoder = mock(AddressGeocoder.class);
     private final PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
     private final AuthService service = new AuthService(userRepository, donorRepository, organizationRepository,
             organizationVerificationRepository, termsAgreementRepository, regionRepository, passwordEncoder,
             accessTokenProvider, refreshTokenService, emailVerificationStore, businessVerificationStore,
-            kakaoLocalClient, new TransactionTemplate(transactionManager), PROPERTIES);
+            addressGeocoder, new TransactionTemplate(transactionManager), PROPERTIES);
     private final Region bucheon = mock(Region.class);
 
     @BeforeEach
@@ -219,7 +218,7 @@ class AuthServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(accessTokenProvider.issue(2L, UserRole.ORGANIZATION)).thenReturn("access");
         when(refreshTokenService.issue(any(User.class), eq(false))).thenReturn("refresh");
-        when(kakaoLocalClient.geocode(ORG_ADDRESS))
+        when(addressGeocoder.locate(ORG_ADDRESS))
                 .thenReturn(Optional.of(new GeoPoint(new BigDecimal("37.4930158"), new BigDecimal("126.8868294"))));
 
         AuthTokenResponse response = service.signUpOrganization(orgSignUp(" Org@Example.com ", "123-45-67890",
@@ -251,8 +250,8 @@ class AuthServiceTest {
         verify(emailVerificationStore).consumeToken("verify-token");
         verify(businessVerificationStore).consume("business-token");
         // 카카오 호출 동안 DB 트랜잭션을 잡지 않는다
-        InOrder order = inOrder(kakaoLocalClient, transactionManager);
-        order.verify(kakaoLocalClient).geocode(ORG_ADDRESS);
+        InOrder order = inOrder(addressGeocoder, transactionManager);
+        order.verify(addressGeocoder).locate(ORG_ADDRESS);
         order.verify(transactionManager).getTransaction(any());
     }
 
@@ -262,7 +261,7 @@ class AuthServiceTest {
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(organizationRepository.saveAndFlush(any(Organization.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(kakaoLocalClient.geocode(ORG_ADDRESS)).thenThrow(new KakaoApiException("down", null));
+        when(addressGeocoder.locate(ORG_ADDRESS)).thenReturn(Optional.empty());
 
         service.signUpOrganization(validOrgSignUp());
 
@@ -328,7 +327,7 @@ class AuthServiceTest {
         assertError(ErrorCode.AUTH_BUSINESS_NUMBER_DUPLICATED, () -> service.signUpOrganization(validOrgSignUp()));
         verify(emailVerificationStore, never()).consumeToken(anyString());
         verify(businessVerificationStore, never()).consume(anyString());
-        verifyNoInteractions(kakaoLocalClient);
+        verifyNoInteractions(addressGeocoder);
     }
 
     @Test

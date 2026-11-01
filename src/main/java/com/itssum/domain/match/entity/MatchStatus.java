@@ -4,16 +4,17 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * REQUESTED ─수락→ RESERVED ─기부자 "나눔중으로 변경"→ SHARING ─기관 "수령 확인"→ COMPLETED
- * REQUESTED ─거절→ REJECTED / 진행 중 취소 → CANCELED (수량 복원)
+ * PENDING ─상대 수락→ TRADING(수량 미확보) ─기부자 예약→ RESERVED(수량 확보)
+ * ─기관 수령 확인→ COMPLETED. PENDING ─상대 거절→ REJECTED.
+ * TRADING/RESERVED ─양측 취소→ CANCELED.
  */
 @Getter
 @RequiredArgsConstructor
 public enum MatchStatus {
 
-    REQUESTED("응답 대기"),
-    RESERVED("예약중: 수락·수량 확보"),
-    SHARING("나눔중: 기부자 전달 시작"),
+    PENDING("응답 대기: 상대방 확인 전"),
+    TRADING("거래중: 전달 전 협의"),
+    RESERVED("예약중: 임시 수량 확보"),
     COMPLETED("전달 완료: 기관 수령 확인"),
     REJECTED("거절"),
     CANCELED("취소");

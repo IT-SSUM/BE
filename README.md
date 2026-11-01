@@ -2,8 +2,6 @@
 
 기부자와 복지기관을 연결하는 물품 기부 매칭 서비스 IT:SSUM의 백엔드 레포지토리입니다.
 
-기부자는 가지고 있는 물품을 올리고, 기관은 필요한 물품을 올립니다. 서로 맞는 상대를 추천받아 제안·요청을 주고받고, 수락되면 채팅으로 전달 일정을 잡아 기관이 수령 확인까지 하는 흐름입니다.
-
 <br>
 
 ## 주요 기능
@@ -11,17 +9,18 @@
 **기부자**
 - 기부 물품 등록 (카테고리, 품목, 수량, 물품 상태 상·중·하, 사진 1장 이상, 지역은 경기 부천시 고정)
 - 등록한 물품 기준으로 추천 기관 목록 확인 후 기부 제안
-- 기관이 보낸 나눔 요청 수락 / 거절
-- 수락된 건은 채팅으로 일정 조율 → "나눔중"으로 변경
+- 기관이 보낸 기부 요청 수락·거절 및 거래 수량 예약
+- 채팅으로 전달 방법·일정·장소 협의
 
 **복지기관**
 - 회원가입 시 국세청 사업자등록정보 진위확인 API로 사업자 확인 (운영자 승인 절차 없음)
 - 필요 물품 등록 (필요 수량, 희망 최소 상태, 수령 지역)
-- 필요 물품 기준으로 추천 기부 물품 확인 후 나눔 요청
+- 필요 물품 기준으로 추천 기부 물품 확인 후 기부 요청
+- 기부자가 보낸 기부 제안 수락·거절
 - 물품을 받으면 수령 확인 → 전달 완료
 
 **공통**
-- STOMP 기반 1:1 채팅 (매칭 1건당 채팅방 1개)
+- STOMP 기반 1:1 채팅 (수락한 개별 거래 1건당 채팅방 1개, 거래중부터 이용 가능)
 - 매칭 상태가 바뀔 때마다 알림 (실시간 구독 + 목록 조회, 읽음 처리)
 - 이메일 링크로 비밀번호 재설정
 
@@ -38,10 +37,11 @@
 | 실시간 | Spring WebSocket + STOMP |
 | 기타 | Validation, Java Mail Sender (Gmail SMTP), Caffeine, Lombok |
 | 외부 API | 국세청 사업자등록정보 진위확인 (공공데이터포털), 카카오 로컬 (주소 → 좌표) |
+| 파일 저장 | AWS S3 (Presigned URL), AWS Lambda (채팅 썸네일) |
 | Build | Gradle (Groovy) |
-| 배포 | GitHub Actions, Docker, AWS EC2 · RDS |
+| 배포 | GitHub Actions, Docker, AWS EC2 · RDS, Nginx, Let's Encrypt |
 | API 문서 | springdoc-openapi (Swagger UI) |
-| 예정 | AWS S3 (이미지), FCM (푸시) |
+| 예정 | FCM (푸시) |
 
 <br>
 
@@ -64,10 +64,11 @@
 설계하면서 정한 것들
 
 - `donors`, `organizations`, `notification_settings`는 `users`의 PK를 그대로 PK로 씁니다. 엔티티에서는 `@MapsId`로 매핑합니다.
-- 매칭은 항상 기부 물품 1개와 필요 물품 1개를 잇습니다. 기부자가 먼저 제안한 건지 기관이 먼저 요청한 건지는 `requested_by`로 구분합니다.
+- 개별 거래는 기부자 1명과 기관 1곳 사이에서 기부 물품 1개와 필요 물품 1개를 잇습니다. 물품 하나는 여러 개별 거래에 참여할 수 있습니다. 기부자가 먼저 제안한 건지 기관이 먼저 요청한 건지는 `requested_by`로 구분합니다.
 - 기부 물품 하나를 여러 기관에 나눠 줄 수 있어서 수량을 `quantity`, `reserved_quantity`, `completed_quantity` 세 개로 관리합니다. 필요 물품도 같은 방식입니다.
 - 매칭 목록 조회가 잦아서 `matches`에 `donor_id`, `organization_id`를 중복 저장했습니다.
 - 회원 탈퇴, 물품 삭제는 `deleted_at`을 채우는 soft delete입니다.
+- 회원 탈퇴 때는 이름·연락처·이메일 등 개인정보를 자리표시 값으로 덮어써서, 같은 이메일·사업자번호로 다시 가입할 수 있게 합니다. 응답 대기 중인 제안·요청이나 거래중·예약중인 거래가 있으면 탈퇴할 수 없습니다.
 - 파일럿 지역은 경기 부천시 한 곳입니다. `regions`에는 `region_id = 1`인 부천시만 있고, 기부자 활동 지역과 물품 지역은 이 값으로 고정합니다. 거리 계산은 물품 상세주소와 기관 주소의 좌표로 하기 때문에 `regions`에는 좌표를 두지 않습니다.
 
 ### 스키마 관리
@@ -84,16 +85,18 @@ Flyway는 쓰지 않고 `spring.jpa.hibernate.ddl-auto: update`로 관리합니�
 
 | 상태 | 화면 표시 | 다음으로 넘어가는 조건 |
 |---|---|---|
-| `REQUESTED` | 응답 대기 | 상대가 수락하면 `RESERVED`, 거절하면 `REJECTED` |
-| `RESERVED` | 예약중 | 기부자가 "나눔중으로 변경"을 누르면 `SHARING`, 취소하면 `CANCELED` |
-| `SHARING` | 나눔중 | 기관이 수령 확인하면 `COMPLETED`, 취소하면 `CANCELED` |
+| `PENDING` | 응답 대기 | 받은 사람이 수락하면 `TRADING`, 거절하면 `REJECTED` |
+| `TRADING` | 거래중 | 양측이 채팅으로 협의합니다. 기부자가 수량을 예약하면 `RESERVED`, 취소하면 `CANCELED` |
+| `RESERVED` | 예약중 | 기관이 실제 수령 확인하면 `COMPLETED`, 취소하면 `CANCELED` |
 | `COMPLETED` | 전달 완료 | 끝 |
 | `REJECTED` | 거절 | 끝 |
 | `CANCELED` | 취소 | 끝 |
 
-- 수락하는 순간 기부 물품과 필요 물품 양쪽의 `reserved_quantity`에 매칭 수량이 더해집니다.
-- 취소되면 예약했던 수량을 다시 돌려놓습니다.
+- 수락하면 채팅방이 열리지만 수량은 확보되지 않습니다. 거래중에도 수량을 확보하지 않습니다. 기부자가 예약중으로 바꾸는 순간 기부 물품과 필요 물품 양쪽의 `reserved_quantity`에 거래 수량이 더해집니다.
+- 거래중·예약중 거래는 양측 모두 취소할 수 있습니다. 예약중 취소 시 예약 수량을 돌려놓습니다.
 - 수령 확인 시 `reserved_quantity`에서 빼고 `completed_quantity`(필요 물품은 `received_quantity`)로 옮깁니다.
+- 신청 가능 수량은 `quantity - reserved_quantity - completed_quantity`, 추가 필요 수량은 `required_quantity - reserved_quantity - received_quantity`입니다. 필요 물품의 수령 수량이 필요 수량을 채우면 모집을 종료합니다.
+- 예약중 거래의 당사자 누구나 채팅에서 합의한 전달 방법·일정·장소를 저장·변경할 수 있습니다. 저장할 때마다 확정 당시 내용을 담은 전달 약속 카드가 채팅에 생성됩니다.
 
 <br>
 
@@ -165,12 +168,55 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 | CI (`.github/workflows/ci.yml`) | `develop`, `main` 대상 PR | MySQL 8.4 컨테이너를 띄워 빌드·테스트 |
 | CD (`.github/workflows/cd.yml`) | `main` push, Actions 탭 수동 실행 | 이미지 빌드 → Docker Hub push → EC2에서 컨테이너 교체 → `/actuator/health` 확인 |
 
-- 인프라는 EC2(Ubuntu 24.04) 한 대와 RDS MySQL 8.4입니다. EC2의 호스트 Nginx가 80 → `127.0.0.1:8080`으로 프록시하고, 초기 세팅 스크립트는 `docs/infra/ec2-user-data.sh`에 있습니다.
+- 운영 주소는 `https://api.itssum.site`입니다. 가비아 DNS의 `api` A 레코드가 EC2 탄력적 IP를 가리킵니다.
+- 인프라는 EC2(Ubuntu 24.04) 한 대와 RDS MySQL 8.4입니다. EC2의 호스트 Nginx가 443(HTTPS)을 받아 `127.0.0.1:8080`으로 프록시하고, 80은 HTTPS로 리다이렉트합니다. 초기 세팅 스크립트는 `docs/infra/ec2-user-data.sh`에 있습니다.
+- 인증서는 Let's Encrypt(`certbot --nginx`)이고, EC2의 `certbot.timer`가 만료 전에 자동으로 갱신합니다. 도메인이 아니라 IP로 HTTP 접속하면 404입니다.
+- 브라우저에서 API와 채팅 WebSocket(`/ws`)을 부를 수 있는 출처는 `application.yml`의 `cors.allowed-origins`입니다. 지금은 `http://localhost:3000`, `http://localhost:5173`이고, FE 배포 주소가 정해지면 여기와 S3 버킷 CORS에 추가합니다.
 - 비밀값은 GitHub Secrets에만 둡니다. CD가 배포할 때마다 EC2의 `.env`를 새로 만들기 때문에 EC2에서 `.env`를 직접 고치면 다음 배포에서 덮어써집니다.
 - 환경변수를 새로 추가할 때는 GitHub Secrets 등록과 `cd.yml`의 `.env` 블록 수정을 같이 해야 합니다.
 - 이미지 태그는 커밋 SHA입니다. 롤백은 Actions에서 이전 CD 실행을 Re-run 하면 됩니다.
 
 필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `NTS_SERVICE_KEY`, `KAKAO_REST_API_KEY`
+
+### 이미지 저장소 (S3)
+
+채팅 이미지(이후 물품 사진도)는 비공개 S3 버킷에 올리고, DB에는 객체 key만 저장합니다. 버킷이 비공개라 업로드와 조회 모두 서버가 발급한 서명 URL로 합니다.
+
+| 항목 | 값 |
+|---|---|
+| 버킷 | `itssum-images-6318` (서울 `ap-northeast-2`), 퍼블릭 접근 차단, SSE-S3 |
+| 서명 URL | 업로드(PUT) 10분, 조회(GET) 1시간 |
+| key | `{접두사}/{소유자ID}/{uuid}.{jpg,png,webp}` — 채팅은 `chat/{채팅방ID}/...` |
+| CORS | `http://localhost:3000`, `http://localhost:5173`만 허용 (PUT·GET, 헤더 `Content-Type`·`If-None-Match`, `ETag` 노출). FE 배포 도메인이 정해지면 추가 |
+| 서버 권한 | EC2 IAM 역할 `itssum-ec2-s3`: 이 버킷의 객체 읽기·쓰기·삭제 + `ListBucket` |
+
+- 버킷 이름과 리전은 비밀값이 아니라 `application-prod.yml`에 있고, 자격 증명은 EC2 역할에서 받습니다. S3 때문에 추가할 GitHub Secret은 없습니다.
+- 조회 URL은 서명에 쓴 EC2 역할 임시 자격 증명이 먼저 만료되면 1시간보다 일찍 끊길 수 있습니다. FE는 원본(`content`)도 못 불러오면 메시지를 다시 조회해 새 URL을 받습니다.
+- `ListBucket`이 없으면 S3가 없는 객체 조회에 404 대신 403을 돌려줘서, 업로드 확인에서 "아직 안 올라옴"을 구분하지 못합니다.
+- 서버가 Docker 컨테이너 안에서 EC2 메타데이터(IMDSv2)로 자격 증명을 받기 때문에 인스턴스의 메타데이터 홉 제한을 2로 둡니다.
+- 로컬·테스트에는 버킷 설정이 없어 S3 빈이 만들어지지 않고, 채팅 이미지 API는 503(`CHAT_IMAGE_STORAGE_UNAVAILABLE`)을 돌려줍니다. 이미지 흐름은 운영 서버에서 확인합니다.
+- 이미지 메시지를 보낼 때 업로드된 객체의 크기(10MB 이하)·Content-Type과 파일 앞 12바이트의 형식 시그니처(JPEG·PNG·WebP)를 확인합니다. 선언한 형식과 실제 파일이 다르면 객체를 지우고 거절합니다.
+- 업로드 URL만 받고 메시지를 보내지 않은 파일은 지우지 않고 남겨 둡니다 (파일럿 범위).
+
+**채팅 썸네일 Lambda**
+
+| 항목 | 값 |
+|---|---|
+| 함수 | `itssum-chat-thumbnail` (Node.js 24.x, x86_64, 1024MB, 30초) |
+| 트리거 | 버킷 PUT 이벤트, 접두사 `chat/` |
+| 결과 | `thumbnails/chat/{채팅방ID}/{uuid}.webp` — 긴 변 400px, WebP 품질 80, 원본보다 키우지 않음 |
+| 실행 역할 | `itssum-thumbnail-lambda`: `chat/*` 읽기, `thumbnails/*` 쓰기, CloudWatch 로그 |
+
+- 이미지 메시지 응답의 `thumbnailUrl`이 이 썸네일의 서명 URL입니다. 서버는 썸네일이 있는지 확인하지 않으므로, FE는 썸네일을 못 불러오면 `content`의 원본 URL로 바꿔 보여줍니다.
+- 결과를 `thumbnails/`에 쓰기 때문에 트리거(`chat/`)가 다시 실행되지 않습니다.
+- 함수 코드는 이 레포에 올리지 않습니다 (`lambda/`는 gitignore). 원본 소스는 담당자 PC의 `lambda/chat-thumbnail/`에만 있고, 배포된 코드가 기준입니다. 다른 사람이 고칠 때는 Lambda 콘솔에서 함수 코드를 .zip으로 내려받아 `lambda/chat-thumbnail/`에 풀고 시작합니다.
+- 코드를 바꾸면 `lambda/chat-thumbnail`에서 sharp를 리눅스용으로 받아 zip으로 묶고 Lambda 콘솔 코드 탭에서 .zip 파일로 올립니다. zip 안의 경로 구분자가 `/`여야 해서 Windows `Compress-Archive` 대신 Python `zipfile`로 묶습니다.
+
+```bash
+cd lambda/chat-thumbnail
+npm install --omit=dev --os=linux --cpu=x64 --libc=glibc
+python -c "import shutil; shutil.make_archive('../chat-thumbnail', 'zip', '.')"   # lambda/chat-thumbnail.zip
+```
 
 <br>
 
@@ -179,7 +225,7 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 API 명세는 노션에서 관리하고, 실제 요청·응답은 Swagger UI에서 확인합니다.
 
 - 로컬: http://localhost:8080/swagger-ui.html
-- 배포 서버: `http://<EC2 주소>/swagger-ui.html` (도메인 연결 후 주소 갱신 예정)
+- 배포 서버: https://api.itssum.site/swagger-ui.html
 - 로그인·회원가입 응답의 `accessToken`을 우측 상단 **Authorize**에 넣고 호출합니다. 인증 API(`/api/auth/...`)는 토큰 없이 호출합니다.
 
 - REST: `/api/{리소스 복수형}` 형태, 내 정보는 `/me`로 접근 (예: `GET /api/donors/me/donation-items`)

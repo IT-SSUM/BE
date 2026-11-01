@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum NeededItemStatus {
 
     RECRUITING("모집중"),
-    FULL("신규 제안 제한: 추가 필요 0"),
+    FULL("예약마감: 추가 필요 수량 0"),
     CLOSED("모집 종료");
 
     private final String description;

@@ -38,3 +38,9 @@ out/
 
 ### Claude Code ###
 CLAUDE.md
+# superpowers 스펙·구현 계획 문서 (로컬 작업용)
+docs/superpowers/
+
+### Lambda ###
+# 채팅 썸네일 Lambda 소스 (로컬 작업용, AWS 콘솔에 zip 으로 직접 배포)
+lambda/

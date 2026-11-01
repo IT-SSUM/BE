@@ -55,11 +55,11 @@ public class ChatMessage extends BaseCreatedTimeEntity {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @ColumnDefault("'TEXT'")
     @Column(nullable = false, length = 20,
-            comment = "TEXT | IMAGE | SYSTEM(나눔 연결·나눔중 변경·수령 확인 안내)"
-                    + " | APPOINTMENT(전달 약속 카드: matches 일정·장소·방법 참조)")
+            comment = "TEXT | IMAGE | SYSTEM(거래 연결 안내)"
+                    + " | APPOINTMENT(전달 약속 카드: 확정 당시 정보 보관)")
     private MessageType messageType = MessageType.TEXT;
 
-    @Column(nullable = false, columnDefinition = "TEXT", comment = "메시지 내용 또는 이미지 URL")
+    @Column(nullable = false, columnDefinition = "TEXT", comment = "메시지 내용, 이미지 URL 또는 전달 약속 JSON")
     private String content;
 
     /** messageType 을 넘기지 않으면 DB 기본값과 같은 TEXT 로 저장된다. */

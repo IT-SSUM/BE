@@ -132,11 +132,11 @@ CREATE TABLE `donation_items` (
   `item_name`          VARCHAR(50) NOT NULL COMMENT '품목 (어린이 도서, 생수 ...)',
   `quantity`           INT         NOT NULL COMMENT '총 수량',
   `unit`               VARCHAR(10) NOT NULL COMMENT '단위 (개, 권, 장, 벌 ...)',
-  `reserved_quantity`  INT         NOT NULL DEFAULT 0 COMMENT '진행 수량 (수락~전달 중인 매칭 합계)',
+  `reserved_quantity`  INT         NOT NULL DEFAULT 0 COMMENT '예약중 거래에 임시 배정된 수량',
   `completed_quantity` INT         NOT NULL DEFAULT 0 COMMENT '전달 완료 수량',
   `condition_grade`    VARCHAR(10) NOT NULL COMMENT '물품 상태: HIGH(상·미개봉) | MID(중·사용감 적음) | LOW(하·다회 사용)',
   `description`        TEXT        NULL     COMMENT '설명 (선택)',
-  `status`             VARCHAR(20) NOT NULL DEFAULT 'SHARING' COMMENT 'SHARING(나눔중: 가능 수량 남음) | RESERVED(예약중: 남은 수량 0) | COMPLETED(전달 완료)',
+  `status`             VARCHAR(20) NOT NULL DEFAULT 'RECRUITING' COMMENT 'RECRUITING(모집중) | FULL(예약마감) | COMPLETED(전달 완료)',
   `created_at`         DATETIME    NOT NULL COMMENT '등록 일시',
   `updated_at`         DATETIME    NOT NULL COMMENT '수정 일시',
   `deleted_at`         DATETIME    NULL     COMMENT '삭제 일시 (soft delete)',
@@ -172,7 +172,7 @@ CREATE TABLE `needed_items` (
   `receive_address`     VARCHAR(255)  NULL     COMMENT '수령 장소 상세 주소 (선택, 필요 나눔 수정 화면)',
   `latitude`            DECIMAL(10,7) NULL     COMMENT '수령 장소 위도',
   `longitude`           DECIMAL(10,7) NULL     COMMENT '수령 장소 경도',
-  `status`              VARCHAR(20)   NOT NULL DEFAULT 'RECRUITING' COMMENT 'RECRUITING(모집중) | FULL(신규 제안 제한: 추가 필요 0) | CLOSED(모집 종료)',
+  `status`              VARCHAR(20)   NOT NULL DEFAULT 'RECRUITING' COMMENT 'RECRUITING(모집중) | FULL(예약마감) | CLOSED(모집 종료)',
   `closed_at`           DATETIME      NULL     COMMENT '모집 종료 일시',
   `created_at`          DATETIME      NOT NULL COMMENT '등록 일시',
   `updated_at`          DATETIME      NOT NULL COMMENT '수정 일시',
@@ -209,32 +209,30 @@ CREATE TABLE `donation_item_recommendations` (
   PRIMARY KEY (`recommendation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 기부 물품 추천';
 
--- ---------- 매칭 (기부 제안 / 나눔 요청 → 나눔 진행) ----------
+-- ---------- 매칭 (기부 제안 / 기부 요청 → 개별 거래) ----------
 -- POST /api/matches, GET /api/matches(/{id})
--- 상태 흐름 (Figma 응답 대기·나눔 연결 결과·나눔 진행 상세 기준)
---   REQUESTED(응답 대기) ─수락→ RESERVED(예약중) ─기부자 "나눔중으로 변경"→ SHARING(나눔중) ─기관 "수령 확인"→ COMPLETED
---   REQUESTED ─거절→ REJECTED / 진행 중 "나눔 취소·지원 취소" → CANCELED (수량 복원)
--- ※ API 명세엔 거절·나눔중 변경 엔드포인트가 없음 (/reserve, /complete, /cancel 만 있음)
+--   PENDING(응답 대기) ─상대 수락→ TRADING(거래중, 수량 미확보) ─기부자 예약→ RESERVED(수량 확보) ─기관 수령 확인→ COMPLETED
+--   PENDING ─상대 거절→ REJECTED / TRADING·RESERVED ─양측 취소→ CANCELED (예약중 수량만 반환)
 CREATE TABLE `matches` (
   `match_id`         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '매칭 ID',
   `donation_item_id` BIGINT       NOT NULL COMMENT '기부 물품',
   `needed_item_id`   BIGINT       NOT NULL COMMENT '필요 물품 (제안·요청 모두 필요 물품에 연결)',
   `donor_id`         BIGINT       NOT NULL COMMENT '기부자 (목록 조회용 역정규화)',
   `organization_id`  BIGINT       NOT NULL COMMENT '기관 (목록 조회용 역정규화)',
-  `requested_by`     VARCHAR(20)  NOT NULL COMMENT 'DONOR(기부 제안) | ORGANIZATION(나눔 요청)',
-  `quantity`         INT          NOT NULL COMMENT '제안/요청 수량 (수락 시 양쪽 reserved_quantity에 반영)',
+  `requested_by`     VARCHAR(20)  NOT NULL COMMENT 'DONOR(기부 제안) | ORGANIZATION(기부 요청)',
+  `quantity`         INT          NOT NULL COMMENT '제안/요청 수량 (기부자가 예약중으로 변경하면 양쪽 reserved_quantity에 반영)',
   `message`          VARCHAR(500) NULL     COMMENT '상대에게 전할 메시지',
-  `status`           VARCHAR(20)  NOT NULL DEFAULT 'REQUESTED' COMMENT 'REQUESTED(응답 대기) | RESERVED(예약중: 수락·수량 확보) | SHARING(나눔중: 기부자 전달 시작) | COMPLETED(전달 완료: 기관 수령 확인) | REJECTED | CANCELED',
-  `responded_at`     DATETIME     NULL     COMMENT '수락/거절 일시',
-  `sharing_at`       DATETIME     NULL     COMMENT '나눔중 변경 일시',
+  `status`           VARCHAR(20)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING(응답 대기) | TRADING(거래중: 수량 미확보) | RESERVED(예약중: 임시 수량 확보) | COMPLETED(전달 완료: 기관 수령 확인) | REJECTED | CANCELED',
+  `responded_at`     DATETIME     NULL     COMMENT '수락·거절 일시',
+  `reserved_at`      DATETIME     NULL     COMMENT '예약중 변경 일시',
   `completed_at`     DATETIME     NULL     COMMENT '수령 확인 일시',
   `delivery_method`  VARCHAR(20)  NULL     COMMENT '전달 방법: DIRECT(직접 전달) | PARCEL(택배) — 채팅에서 협의 후 확정',
   `scheduled_at`     DATETIME     NULL     COMMENT '전달 일정 (전달 약속 · 10월 9일 오후 2시)',
   `delivery_place`   VARCHAR(255) NULL     COMMENT '전달 장소 (구로지역아동센터 입구)',
   `receiver_name`    VARCHAR(30)  NULL     COMMENT '수령 담당자',
   `canceled_at`      DATETIME     NULL     COMMENT '취소 일시',
-  `canceled_by`      BIGINT       NULL     COMMENT '취소/거절한 회원',
-  `cancel_reason`    VARCHAR(255) NULL     COMMENT '취소/거절 사유',
+  `canceled_by`      BIGINT       NULL     COMMENT '취소한 회원',
+  `cancel_reason`    VARCHAR(255) NULL     COMMENT '취소 사유',
   `created_at`       DATETIME     NOT NULL COMMENT '생성 일시',
   `updated_at`       DATETIME     NOT NULL COMMENT '수정 일시',
   PRIMARY KEY (`match_id`)
@@ -244,7 +242,7 @@ CREATE TABLE `matches` (
 -- GET /api/chat-rooms(/{id}), GET /{id}/messages, STOMP /ws · /topic · /app
 CREATE TABLE `chat_rooms` (
   `chat_room_id`         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '채팅방 ID',
-  `match_id`             BIGINT       NOT NULL COMMENT '매칭 1건당 채팅방 1개 (수락 시 생성)',
+  `match_id`             BIGINT       NOT NULL COMMENT '개별 거래 1건당 채팅방 1개 (상대 수락 시 생성)',
   `last_message_content` VARCHAR(255) NULL     COMMENT '목록 미리보기용 마지막 메시지',
   `last_message_at`      DATETIME     NULL     COMMENT '목록 정렬용 마지막 메시지 시각',
   `created_at`           DATETIME     NOT NULL COMMENT '생성 일시',
@@ -265,8 +263,8 @@ CREATE TABLE `chat_messages` (
   `message_id`   BIGINT      NOT NULL AUTO_INCREMENT COMMENT '메시지 ID',
   `chat_room_id` BIGINT      NOT NULL COMMENT '채팅방',
   `sender_id`    BIGINT      NULL     COMMENT '보낸 회원 (SYSTEM 메시지면 NULL)',
-  `message_type` VARCHAR(20) NOT NULL DEFAULT 'TEXT' COMMENT 'TEXT | IMAGE | SYSTEM(나눔 연결·나눔중 변경·수령 확인 안내) | APPOINTMENT(전달 약속 카드: matches 일정·장소·방법 참조)',
-  `content`      TEXT        NOT NULL COMMENT '메시지 내용 또는 이미지 URL',
+  `message_type` VARCHAR(20) NOT NULL DEFAULT 'TEXT' COMMENT 'TEXT | IMAGE | SYSTEM(거래 연결 안내) | APPOINTMENT(전달 약속 카드: 확정 당시 정보 보관)',
+  `content`      TEXT        NOT NULL COMMENT '메시지 내용, 이미지 URL 또는 전달 약속 JSON',
   `created_at`   DATETIME    NOT NULL COMMENT '전송 일시',
   PRIMARY KEY (`message_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='채팅 메시지';
@@ -276,7 +274,7 @@ CREATE TABLE `chat_messages` (
 CREATE TABLE `notifications` (
   `notification_id` BIGINT       NOT NULL AUTO_INCREMENT COMMENT '알림 ID',
   `receiver_id`     BIGINT       NOT NULL COMMENT '수신 회원',
-  `type`            VARCHAR(30)  NOT NULL COMMENT 'MATCH_REQUESTED(새 제안·요청) | MATCH_RESERVED(수락) | MATCH_REJECTED | MATCH_SCHEDULED(전달 일정 확정) | MATCH_SHARING(전달 준비 시작) | MATCH_RECEIVE_REQUIRED(수령 확인 요청) | MATCH_COMPLETED | MATCH_CANCELED(취소·수량 복원) | CHAT',
+  `type`            VARCHAR(30)  NOT NULL COMMENT 'MATCH_REQUESTED(기부 제안·요청) | MATCH_ACCEPTED(수락) | MATCH_REJECTED(거절) | MATCH_RESERVED(기부자 임시 예약) | MATCH_SCHEDULED(전달 약속 확정·변경) | MATCH_RECEIVE_REQUIRED(수령 확인 요청) | MATCH_COMPLETED(기관 수령 확인) | MATCH_CANCELED(거래 취소) | CHAT',
   `title`           VARCHAR(100) NOT NULL COMMENT '알림 제목',
   `content`         VARCHAR(255) NULL     COMMENT '알림 본문',
   `target_type`     VARCHAR(20)  NULL     COMMENT '이동 대상: MATCH | CHAT_ROOM | DONATION_ITEM | NEEDED_ITEM',
@@ -291,7 +289,7 @@ CREATE TABLE `notifications` (
 -- 회원가입 시 기본값(전부 ON)으로 1행 생성. ※ Figma에 알림 설정 화면이 아직 없어 항목은 임시
 CREATE TABLE `notification_settings` (
   `user_id`       BIGINT   NOT NULL COMMENT '회원 ID (users PK 공유)',
-  `match_enabled` BOOLEAN  NOT NULL DEFAULT TRUE COMMENT '매칭 알림 (제안·요청, 수락·거절, 나눔중, 완료, 취소)',
+  `match_enabled` BOOLEAN  NOT NULL DEFAULT TRUE COMMENT '매칭 알림 (제안·요청, 수락·거절, 예약, 전달 약속, 완료, 취소)',
   `chat_enabled`  BOOLEAN  NOT NULL DEFAULT TRUE COMMENT '채팅 알림',
   `created_at`    DATETIME NOT NULL COMMENT '생성 일시',
   `updated_at`    DATETIME NOT NULL COMMENT '수정 일시',

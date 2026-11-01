@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.itssum.global.exception.ErrorCode;
 import java.util.List;
+
+import com.itssum.global.exception.SuccessCode;
 import org.springframework.http.HttpStatus;
 
 /**

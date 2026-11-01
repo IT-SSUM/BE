@@ -3,7 +3,7 @@ package com.itssum.domain.item.controller;
 import com.itssum.domain.item.dto.response.ItemConditionResponse;
 import com.itssum.domain.item.entity.ConditionGrade;
 import com.itssum.global.common.ApiResponse;
-import com.itssum.global.common.SuccessCode;
+import com.itssum.global.exception.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;

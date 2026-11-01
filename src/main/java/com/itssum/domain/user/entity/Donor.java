@@ -61,4 +61,22 @@ public class Donor extends BaseTimeEntity {
         this.phone = phone;
         this.introduction = introduction;
     }
+
+    /** 회원정보 수정. 이메일·활동 지역은 바꾸지 않는다. */
+    public void updateProfile(String name, LocalDate birthDate, String phone) {
+        this.name = name;
+        this.birthDate = birthDate;
+        this.phone = phone;
+    }
+
+    /**
+     * 탈퇴 시 개인정보를 지운다. 이름·생년월일·전화번호는 NOT NULL 이라 자리표시 값으로 덮어쓰고,
+     * 상대방의 나눔 내역에는 "탈퇴한 회원"으로 보인다.
+     */
+    public void anonymize() {
+        this.name = "탈퇴한 회원";
+        this.birthDate = LocalDate.of(1900, 1, 1);
+        this.phone = "000-0000-0000";
+        this.introduction = null;
+    }
 }

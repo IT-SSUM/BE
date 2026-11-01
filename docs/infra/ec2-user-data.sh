@@ -1,5 +1,6 @@
 #!/bin/bash
-# EC2(Ubuntu 24.04) 최초 부팅 시 실행하는 사용자 데이터. Docker, Nginx(80 -> 8080), 2GB 스왑, KST 시간대를 세팅한다.
+# EC2(Ubuntu 24.04) 최초 부팅 시 실행하는 사용자 데이터. Docker, Nginx(api.itssum.site:80 -> 8080), 2GB 스왑, KST 시간대를 세팅한다.
+# HTTPS 인증서는 DNS 연결 뒤에 받아야 해서 맨 아래 명령을 따로 실행한다.
 # 이미 만든 인스턴스에는 한 번만 sudo bash 로 실행한다 (두 번 돌리면 스왑 단계에서 실패).
 # 콘솔 사용자 데이터에 파일로 올리면 한글 주석이 깨져 보이지만 주석이라 실행에는 영향 없다.
 set -euxo pipefail
@@ -18,7 +19,7 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 curl -fsSL https://get.docker.com | sh
 usermod -aG docker ubuntu
 
-# Nginx: 80 -> 127.0.0.1:8080 (STOMP WebSocket 업그레이드 포함)
+# Nginx: 80 -> 127.0.0.1:8080 (STOMP WebSocket 업그레이드 포함). HTTPS 설정은 certbot 이 이 파일에 추가한다
 apt-get update -y
 apt-get install -y nginx
 cat > /etc/nginx/sites-available/itssum <<'EOF'
@@ -29,7 +30,7 @@ map $http_upgrade $connection_upgrade {
 
 server {
     listen 80;
-    server_name _;
+    server_name api.itssum.site;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -43,6 +44,14 @@ server {
         proxy_read_timeout 300s;
     }
 }
+
+# 도메인이 아닌 Host(IP 직접 접속 등)는 앱으로 넘기지 않는다.
+# DNS 연결 전에 확인할 때는 curl -H "Host: api.itssum.site" http://<탄력적 IP>/actuator/health
+server {
+    listen 80 default_server;
+    server_name _;
+    return 404;
+}
 EOF
 ln -sf /etc/nginx/sites-available/itssum /etc/nginx/sites-enabled/itssum
 rm -f /etc/nginx/sites-enabled/default
@@ -52,3 +61,10 @@ systemctl restart nginx
 # CD가 docker-compose.yml과 .env를 올릴 폴더
 mkdir -p /home/ubuntu/itssum-app
 chown ubuntu:ubuntu /home/ubuntu/itssum-app
+
+# HTTPS (Let's Encrypt): DNS(api.itssum.site -> 탄력적 IP)가 연결되고 보안 그룹에 443 이 열린 뒤 한 번만 실행한다.
+# certbot 이 443 server 블록과 80 -> 443 리다이렉트를 추가하고, certbot.timer 가 만료 전에 자동 갱신한다.
+#   sudo apt-get install -y certbot python3-certbot-nginx
+#   (your-email@example.com 은 인증서 만료 알림을 받을 실제 이메일로 바꿔서 실행한다)
+#   sudo certbot --nginx -d api.itssum.site --non-interactive --agree-tos -m your-email@example.com --no-eff-email --redirect
+#   sudo certbot renew --dry-run
