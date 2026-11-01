@@ -188,6 +188,7 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 | 서버 권한 | EC2 IAM 역할 `itssum-ec2-s3`: 이 버킷의 객체 읽기·쓰기·삭제 + `ListBucket` |
 
 - 버킷 이름과 리전은 비밀값이 아니라 `application-prod.yml`에 있고, 자격 증명은 EC2 역할에서 받습니다. S3 때문에 추가할 GitHub Secret은 없습니다.
+- 조회 URL은 서명에 쓴 EC2 역할 임시 자격 증명이 먼저 만료되면 1시간보다 일찍 끊길 수 있습니다. FE는 원본(`content`)도 못 불러오면 메시지를 다시 조회해 새 URL을 받습니다.
 - `ListBucket`이 없으면 S3가 없는 객체 조회에 404 대신 403을 돌려줘서, 업로드 확인에서 "아직 안 올라옴"을 구분하지 못합니다.
 - 서버가 Docker 컨테이너 안에서 EC2 메타데이터(IMDSv2)로 자격 증명을 받기 때문에 인스턴스의 메타데이터 홉 제한을 2로 둡니다.
 - 로컬·테스트에는 버킷 설정이 없어 S3 빈이 만들어지지 않고, 채팅 이미지 API는 503(`CHAT_IMAGE_STORAGE_UNAVAILABLE`)을 돌려줍니다. 이미지 흐름은 운영 서버에서 확인합니다.
@@ -204,11 +205,12 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 
 - 이미지 메시지 응답의 `thumbnailUrl`이 이 썸네일의 서명 URL입니다. 서버는 썸네일이 있는지 확인하지 않으므로, FE는 썸네일을 못 불러오면 `content`의 원본 URL로 바꿔 보여줍니다.
 - 결과를 `thumbnails/`에 쓰기 때문에 트리거(`chat/`)가 다시 실행되지 않습니다.
-- 함수 코드는 이 레포에 올리지 않습니다 (`lambda/`는 gitignore). 코드를 바꾸면 sharp를 리눅스용으로 받아 zip으로 묶고 Lambda 콘솔 코드 탭에서 .zip 파일로 올립니다. zip 안의 경로 구분자는 `/`여야 합니다 (Windows `Compress-Archive`는 쓰지 않습니다).
+- 함수 코드는 이 레포에 올리지 않습니다 (`lambda/`는 gitignore). 코드를 바꾸면 `lambda/chat-thumbnail`에서 sharp를 리눅스용으로 받아 zip으로 묶고 Lambda 콘솔 코드 탭에서 .zip 파일로 올립니다. zip 안의 경로 구분자가 `/`여야 해서 Windows `Compress-Archive` 대신 Python `zipfile`로 묶습니다.
 
 ```bash
+cd lambda/chat-thumbnail
 npm install --omit=dev --os=linux --cpu=x64 --libc=glibc
-zip -r chat-thumbnail.zip index.mjs keys.mjs package.json node_modules
+python -c "import shutil; shutil.make_archive('../chat-thumbnail', 'zip', '.')"   # lambda/chat-thumbnail.zip
 ```
 
 <br>
