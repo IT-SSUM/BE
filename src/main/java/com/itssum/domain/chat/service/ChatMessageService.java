@@ -45,8 +45,10 @@ public class ChatMessageService {
                 .build());
         room.updateLastMessage(request.messageType() == MessageType.IMAGE ? "[사진]" : preview(content),
                 message.getCreatedAt());
-        String displayContent = imageStorage == null ? content : imageStorage.presignRead(content);
-        ChatMessageResponse response = ChatMessageResponse.from(message, displayContent);
+        ChatMessageResponse response = imageStorage == null
+                ? ChatMessageResponse.from(message, content)
+                : ChatMessageResponse.image(message, imageStorage.presignRead(content),
+                        imageStorage.presignThumbnailRead(content));
         eventPublisher.publishEvent(new ChatMessageSentEvent(response));
         return response;
     }

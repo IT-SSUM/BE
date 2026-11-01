@@ -1,6 +1,7 @@
 package com.itssum.domain.chat.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -153,6 +154,7 @@ class ChatQueryServiceTest {
         assertEquals("나눔이 연결됐어요 🌱", donorPage.messages().getFirst().content());
         assertEquals("물품 지원이 연결됐어요 🌱", organizationPage.messages().getFirst().content());
         assertEquals("전달 날짜·장소·방법을 함께 정해 주세요.", donorPage.messages().getFirst().systemDescription());
+        assertNull(donorPage.messages().getFirst().thumbnailUrl());
     }
 
     @Test
@@ -181,6 +183,29 @@ class ChatQueryServiceTest {
         assertEquals("변경된 장소", page.messages().getFirst().appointment().deliveryPlace());
         assertEquals("기관 입구", page.messages().get(1).appointment().deliveryPlace());
         assertEquals(20L, page.messages().get(1).senderId());
+        assertNull(page.messages().get(1).thumbnailUrl());
+    }
+
+    @Test
+    void imageMessageInHistoryHasThumbnailUrl() {
+        ChatRoom room = mock(ChatRoom.class);
+        String key = "chat/1/11111111-1111-1111-1111-111111111111.jpg";
+        ChatMessage image = message(51L, room, mock(User.class));
+        when(image.getMessageType()).thenReturn(MessageType.IMAGE);
+        when(image.getContent()).thenReturn(key);
+        ChatMessage text = message(50L, room, mock(User.class));
+        ChatImageStorage storage = mock(ChatImageStorage.class);
+        when(imageStorageProvider.getIfAvailable()).thenReturn(storage);
+        when(storage.presignRead(key)).thenReturn("https://example.com/signed-image");
+        when(storage.presignThumbnailRead(key)).thenReturn("https://example.com/signed-thumbnail");
+        when(messages.findRecent(eq(1L), eq(null), any(Pageable.class))).thenReturn(List.of(image, text));
+
+        ChatMessagePageResponse page = service.messages(1L, 10L, null, 30);
+
+        assertEquals("https://example.com/signed-image", page.messages().getFirst().content());
+        assertEquals("https://example.com/signed-thumbnail", page.messages().getFirst().thumbnailUrl());
+        assertEquals("hi", page.messages().get(1).content());
+        assertNull(page.messages().get(1).thumbnailUrl());
     }
 
     private ChatMessage message(Long id, ChatRoom room, User sender) {

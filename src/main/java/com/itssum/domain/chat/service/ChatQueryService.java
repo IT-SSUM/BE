@@ -117,7 +117,8 @@ public class ChatQueryService {
             if (storage == null) {
                 throw new BusinessException(ErrorCode.CHAT_IMAGE_STORAGE_UNAVAILABLE);
             }
-            content = storage.presignRead(content);
+            return ChatMessageResponse.image(message, storage.presignRead(content),
+                    storage.presignThumbnailRead(content));
         }
         return ChatMessageResponse.from(message, content);
     }
