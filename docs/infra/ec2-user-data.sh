@@ -44,6 +44,14 @@ server {
         proxy_read_timeout 300s;
     }
 }
+
+# 도메인이 아닌 Host(IP 직접 접속 등)는 앱으로 넘기지 않는다.
+# DNS 연결 전에 확인할 때는 curl -H "Host: api.itssum.site" http://<탄력적 IP>/actuator/health
+server {
+    listen 80 default_server;
+    server_name _;
+    return 404;
+}
 EOF
 ln -sf /etc/nginx/sites-available/itssum /etc/nginx/sites-enabled/itssum
 rm -f /etc/nginx/sites-enabled/default
@@ -57,5 +65,6 @@ chown ubuntu:ubuntu /home/ubuntu/itssum-app
 # HTTPS (Let's Encrypt): DNS(api.itssum.site -> 탄력적 IP)가 연결되고 보안 그룹에 443 이 열린 뒤 한 번만 실행한다.
 # certbot 이 443 server 블록과 80 -> 443 리다이렉트를 추가하고, certbot.timer 가 만료 전에 자동 갱신한다.
 #   sudo apt-get install -y certbot python3-certbot-nginx
-#   sudo certbot --nginx -d api.itssum.site --non-interactive --agree-tos -m <만료 알림 받을 이메일> --no-eff-email --redirect
+#   (your-email@example.com 은 인증서 만료 알림을 받을 실제 이메일로 바꿔서 실행한다)
+#   sudo certbot --nginx -d api.itssum.site --non-interactive --agree-tos -m your-email@example.com --no-eff-email --redirect
 #   sudo certbot renew --dry-run
