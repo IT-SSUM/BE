@@ -39,7 +39,7 @@
 | 외부 API | 국세청 사업자등록정보 진위확인 (공공데이터포털), 카카오 로컬 (주소 → 좌표) |
 | 파일 저장 | AWS S3 (Presigned URL), AWS Lambda (채팅 썸네일) |
 | Build | Gradle (Groovy) |
-| 배포 | GitHub Actions, Docker, AWS EC2 · RDS |
+| 배포 | GitHub Actions, Docker, AWS EC2 · RDS, Nginx, Let's Encrypt |
 | API 문서 | springdoc-openapi (Swagger UI) |
 | 예정 | FCM (푸시) |
 
@@ -168,7 +168,10 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 | CI (`.github/workflows/ci.yml`) | `develop`, `main` 대상 PR | MySQL 8.4 컨테이너를 띄워 빌드·테스트 |
 | CD (`.github/workflows/cd.yml`) | `main` push, Actions 탭 수동 실행 | 이미지 빌드 → Docker Hub push → EC2에서 컨테이너 교체 → `/actuator/health` 확인 |
 
-- 인프라는 EC2(Ubuntu 24.04) 한 대와 RDS MySQL 8.4입니다. EC2의 호스트 Nginx가 80 → `127.0.0.1:8080`으로 프록시하고, 초기 세팅 스크립트는 `docs/infra/ec2-user-data.sh`에 있습니다.
+- 운영 주소는 `https://api.itssum.site`입니다. 가비아 DNS의 `api` A 레코드가 EC2 탄력적 IP를 가리킵니다.
+- 인프라는 EC2(Ubuntu 24.04) 한 대와 RDS MySQL 8.4입니다. EC2의 호스트 Nginx가 443(HTTPS)을 받아 `127.0.0.1:8080`으로 프록시하고, 80은 HTTPS로 리다이렉트합니다. 초기 세팅 스크립트는 `docs/infra/ec2-user-data.sh`에 있습니다.
+- 인증서는 Let's Encrypt(`certbot --nginx`)이고, EC2의 `certbot.timer`가 만료 전에 자동으로 갱신합니다. 도메인이 아니라 IP로 HTTP 접속하면 404입니다.
+- 브라우저에서 API와 채팅 WebSocket(`/ws`)을 부를 수 있는 출처는 `application.yml`의 `cors.allowed-origins`입니다. 지금은 `http://localhost:3000`, `http://localhost:5173`이고, FE 배포 주소가 정해지면 여기와 S3 버킷 CORS에 추가합니다.
 - 비밀값은 GitHub Secrets에만 둡니다. CD가 배포할 때마다 EC2의 `.env`를 새로 만들기 때문에 EC2에서 `.env`를 직접 고치면 다음 배포에서 덮어써집니다.
 - 환경변수를 새로 추가할 때는 GitHub Secrets 등록과 `cd.yml`의 `.env` 블록 수정을 같이 해야 합니다.
 - 이미지 태그는 커밋 SHA입니다. 롤백은 Actions에서 이전 CD 실행을 Re-run 하면 됩니다.
@@ -184,7 +187,7 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 | 버킷 | `itssum-images-6318` (서울 `ap-northeast-2`), 퍼블릭 접근 차단, SSE-S3 |
 | 서명 URL | 업로드(PUT) 10분, 조회(GET) 1시간 |
 | key | `{접두사}/{소유자ID}/{uuid}.{jpg,png,webp}` — 채팅은 `chat/{채팅방ID}/...` |
-| CORS | `http://localhost:5173`만 허용 (PUT·GET, 헤더 `Content-Type`·`If-None-Match`, `ETag` 노출). FE 배포 도메인이 정해지면 추가 |
+| CORS | `http://localhost:3000`, `http://localhost:5173`만 허용 (PUT·GET, 헤더 `Content-Type`·`If-None-Match`, `ETag` 노출). FE 배포 도메인이 정해지면 추가 |
 | 서버 권한 | EC2 IAM 역할 `itssum-ec2-s3`: 이 버킷의 객체 읽기·쓰기·삭제 + `ListBucket` |
 
 - 버킷 이름과 리전은 비밀값이 아니라 `application-prod.yml`에 있고, 자격 증명은 EC2 역할에서 받습니다. S3 때문에 추가할 GitHub Secret은 없습니다.
@@ -222,7 +225,7 @@ python -c "import shutil; shutil.make_archive('../chat-thumbnail', 'zip', '.')" 
 API 명세는 노션에서 관리하고, 실제 요청·응답은 Swagger UI에서 확인합니다.
 
 - 로컬: http://localhost:8080/swagger-ui.html
-- 배포 서버: `http://<EC2 주소>/swagger-ui.html` (도메인 연결 후 주소 갱신 예정)
+- 배포 서버: https://api.itssum.site/swagger-ui.html
 - 로그인·회원가입 응답의 `accessToken`을 우측 상단 **Authorize**에 넣고 호출합니다. 인증 API(`/api/auth/...`)는 토큰 없이 호출합니다.
 
 - REST: `/api/{리소스 복수형}` 형태, 내 정보는 `/me`로 접근 (예: `GET /api/donors/me/donation-items`)
