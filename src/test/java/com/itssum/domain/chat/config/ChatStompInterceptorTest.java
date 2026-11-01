@@ -58,8 +58,24 @@ class ChatStompInterceptorTest {
     }
 
     @Test
+    void notificationSubscriptionRequiresAuthenticatedUser() {
+        Principal principal = () -> "10";
+        User user = mock(User.class);
+        when(userResolver.requireUser(principal)).thenReturn(user);
+        StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        headers.setDestination("/user/queue/notifications");
+        headers.setUser(principal);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+
+        interceptor.preSend(message, channel);
+
+        verify(userResolver).requireUser(principal);
+    }
+
+    @Test
     void otherSubscriptionsAreRejected() {
-        for (String destination : new String[] {null, "/topic/other", "/topic/chat-rooms/42/other"}) {
+        for (String destination : new String[] {null, "/topic/other", "/topic/chat-rooms/42/other", "/user/queue/other",
+                "/user/queue/notifications/42"}) {
             StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
             headers.setDestination(destination);
             Message<byte[]> message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());

@@ -49,7 +49,7 @@ public class Notification extends BaseCreatedTimeEntity {
     @Column(nullable = false, length = 30,
             comment = "MATCH_REQUESTED(기부 제안·요청) | MATCH_ACCEPTED(수락) | MATCH_REJECTED(거절)"
                     + " | MATCH_RESERVED(기부자 임시 예약) | MATCH_SCHEDULED(전달 약속 확정·변경)"
-                    + " | MATCH_RECEIVE_REQUIRED(수령 확인 요청)"
+                    + " | MATCH_RECEIVE_REQUIRED(수령 여부 확인 알림)"
                     + " | MATCH_COMPLETED | MATCH_CANCELED(거래 취소) | CHAT")
     private NotificationType type;
 
@@ -83,5 +83,12 @@ public class Notification extends BaseCreatedTimeEntity {
         this.content = content;
         this.targetType = targetType;
         this.targetId = targetId;
+    }
+
+    public void markRead() {
+        if (!isRead) {
+            isRead = true;
+            readAt = LocalDateTime.now();
+        }
     }
 }

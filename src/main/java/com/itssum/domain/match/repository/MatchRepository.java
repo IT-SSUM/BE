@@ -3,9 +3,11 @@ package com.itssum.domain.match.repository;
 import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.MatchStatus;
 import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -16,6 +18,12 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from Match m where m.id = :id")
     Optional<Match> findByIdForUpdate(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select m from Match m where m.status = :status and m.scheduledAt <= :now "
+            + "and m.receiptReminderSentAt is null order by m.scheduledAt, m.id")
+    List<Match> findDueReceiptReminders(@Param("status") MatchStatus status,
+                                        @Param("now") LocalDateTime now, Pageable pageable);
 
     @EntityGraph(attributePaths = {"donationItem", "donationItem.category", "donationItem.region",
             "neededItem", "neededItem.region", "donor", "organization"})
