@@ -7,4 +7,6 @@ public interface ChatImageStorage {
     void verifyUploaded(Long chatRoomId, String objectKey);
 
     String presignRead(String objectKey);
+
+    String presignThumbnailRead(String objectKey);
 }

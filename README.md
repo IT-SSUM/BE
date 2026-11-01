@@ -37,10 +37,11 @@
 | 실시간 | Spring WebSocket + STOMP |
 | 기타 | Validation, Java Mail Sender (Gmail SMTP), Caffeine, Lombok |
 | 외부 API | 국세청 사업자등록정보 진위확인 (공공데이터포털), 카카오 로컬 (주소 → 좌표) |
+| 파일 저장 | AWS S3 (Presigned URL), AWS Lambda (채팅 썸네일) |
 | Build | Gradle (Groovy) |
 | 배포 | GitHub Actions, Docker, AWS EC2 · RDS |
 | API 문서 | springdoc-openapi (Swagger UI) |
-| 예정 | AWS S3 (이미지), FCM (푸시) |
+| 예정 | FCM (푸시) |
 
 <br>
 
@@ -173,6 +174,46 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 - 이미지 태그는 커밋 SHA입니다. 롤백은 Actions에서 이전 CD 실행을 Re-run 하면 됩니다.
 
 필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `NTS_SERVICE_KEY`, `KAKAO_REST_API_KEY`
+
+### 이미지 저장소 (S3)
+
+채팅 이미지(이후 물품 사진도)는 비공개 S3 버킷에 올리고, DB에는 객체 key만 저장합니다. 버킷이 비공개라 업로드와 조회 모두 서버가 발급한 서명 URL로 합니다.
+
+| 항목 | 값 |
+|---|---|
+| 버킷 | `itssum-images-6318` (서울 `ap-northeast-2`), 퍼블릭 접근 차단, SSE-S3 |
+| 서명 URL | 업로드(PUT) 10분, 조회(GET) 1시간 |
+| key | `{접두사}/{소유자ID}/{uuid}.{jpg,png,webp}` — 채팅은 `chat/{채팅방ID}/...` |
+| CORS | `http://localhost:5173`만 허용 (PUT·GET, 헤더 `Content-Type`·`If-None-Match`, `ETag` 노출). FE 배포 도메인이 정해지면 추가 |
+| 서버 권한 | EC2 IAM 역할 `itssum-ec2-s3`: 이 버킷의 객체 읽기·쓰기·삭제 + `ListBucket` |
+
+- 버킷 이름과 리전은 비밀값이 아니라 `application-prod.yml`에 있고, 자격 증명은 EC2 역할에서 받습니다. S3 때문에 추가할 GitHub Secret은 없습니다.
+- 조회 URL은 서명에 쓴 EC2 역할 임시 자격 증명이 먼저 만료되면 1시간보다 일찍 끊길 수 있습니다. FE는 원본(`content`)도 못 불러오면 메시지를 다시 조회해 새 URL을 받습니다.
+- `ListBucket`이 없으면 S3가 없는 객체 조회에 404 대신 403을 돌려줘서, 업로드 확인에서 "아직 안 올라옴"을 구분하지 못합니다.
+- 서버가 Docker 컨테이너 안에서 EC2 메타데이터(IMDSv2)로 자격 증명을 받기 때문에 인스턴스의 메타데이터 홉 제한을 2로 둡니다.
+- 로컬·테스트에는 버킷 설정이 없어 S3 빈이 만들어지지 않고, 채팅 이미지 API는 503(`CHAT_IMAGE_STORAGE_UNAVAILABLE`)을 돌려줍니다. 이미지 흐름은 운영 서버에서 확인합니다.
+- 이미지 메시지를 보낼 때 업로드된 객체의 크기(10MB 이하)·Content-Type과 파일 앞 12바이트의 형식 시그니처(JPEG·PNG·WebP)를 확인합니다. 선언한 형식과 실제 파일이 다르면 객체를 지우고 거절합니다.
+- 업로드 URL만 받고 메시지를 보내지 않은 파일은 지우지 않고 남겨 둡니다 (파일럿 범위).
+
+**채팅 썸네일 Lambda**
+
+| 항목 | 값 |
+|---|---|
+| 함수 | `itssum-chat-thumbnail` (Node.js 24.x, x86_64, 1024MB, 30초) |
+| 트리거 | 버킷 PUT 이벤트, 접두사 `chat/` |
+| 결과 | `thumbnails/chat/{채팅방ID}/{uuid}.webp` — 긴 변 400px, WebP 품질 80, 원본보다 키우지 않음 |
+| 실행 역할 | `itssum-thumbnail-lambda`: `chat/*` 읽기, `thumbnails/*` 쓰기, CloudWatch 로그 |
+
+- 이미지 메시지 응답의 `thumbnailUrl`이 이 썸네일의 서명 URL입니다. 서버는 썸네일이 있는지 확인하지 않으므로, FE는 썸네일을 못 불러오면 `content`의 원본 URL로 바꿔 보여줍니다.
+- 결과를 `thumbnails/`에 쓰기 때문에 트리거(`chat/`)가 다시 실행되지 않습니다.
+- 함수 코드는 이 레포에 올리지 않습니다 (`lambda/`는 gitignore). 원본 소스는 담당자 PC의 `lambda/chat-thumbnail/`에만 있고, 배포된 코드가 기준입니다. 다른 사람이 고칠 때는 Lambda 콘솔에서 함수 코드를 .zip으로 내려받아 `lambda/chat-thumbnail/`에 풀고 시작합니다.
+- 코드를 바꾸면 `lambda/chat-thumbnail`에서 sharp를 리눅스용으로 받아 zip으로 묶고 Lambda 콘솔 코드 탭에서 .zip 파일로 올립니다. zip 안의 경로 구분자가 `/`여야 해서 Windows `Compress-Archive` 대신 Python `zipfile`로 묶습니다.
+
+```bash
+cd lambda/chat-thumbnail
+npm install --omit=dev --os=linux --cpu=x64 --libc=glibc
+python -c "import shutil; shutil.make_archive('../chat-thumbnail', 'zip', '.')"   # lambda/chat-thumbnail.zip
+```
 
 <br>
 

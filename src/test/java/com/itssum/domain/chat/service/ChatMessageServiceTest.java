@@ -1,6 +1,7 @@
 package com.itssum.domain.chat.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
@@ -72,6 +73,14 @@ class ChatMessageServiceTest {
     }
 
     @Test
+    void textMessageHasNoThumbnail() {
+        ChatMessageResponse result = service.send(1L, user,
+                new SendChatMessageRequest(MessageType.TEXT, "안녕하세요"));
+
+        assertNull(result.thumbnailUrl());
+    }
+
+    @Test
     void longTextKeepsFullMessageAndTruncatesPreviewWithoutSplittingEmoji() {
         String content = "a".repeat(254) + "🌱" + "끝";
 
@@ -138,6 +147,7 @@ class ChatMessageServiceTest {
         when(imageStorageProvider.getIfAvailable()).thenReturn(storage);
         String key = "chat/1/11111111-1111-1111-1111-111111111111.jpg";
         when(storage.presignRead(key)).thenReturn("https://example.com/signed-image");
+        when(storage.presignThumbnailRead(key)).thenReturn("https://example.com/signed-thumbnail");
 
         ChatMessageResponse result = service.send(1L, user,
                 new SendChatMessageRequest(MessageType.IMAGE, key));
@@ -148,6 +158,7 @@ class ChatMessageServiceTest {
         order.verify(accessService).requireWritableRoomForSend(1L, 10L);
         order.verify(messageRepository).saveAndFlush(any(ChatMessage.class));
         assertEquals("https://example.com/signed-image", result.content());
+        assertEquals("https://example.com/signed-thumbnail", result.thumbnailUrl());
         assertEquals("[사진]", room.getLastMessageContent());
     }
 }
