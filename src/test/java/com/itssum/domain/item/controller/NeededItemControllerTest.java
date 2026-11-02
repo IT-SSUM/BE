@@ -2,21 +2,28 @@ package com.itssum.domain.item.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.itssum.domain.item.dto.response.ItemPageResponse;
 import com.itssum.domain.item.dto.response.NeededItemDetailResponse;
 import com.itssum.domain.item.entity.ConditionGrade;
 import com.itssum.domain.item.entity.NeededItemStatus;
+import com.itssum.domain.item.service.ItemSearchCondition;
 import com.itssum.domain.item.service.NeededItemCommandService;
+import com.itssum.domain.item.service.NeededItemQueryService;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.domain.user.entity.VerificationStatus;
 import com.itssum.global.security.AccessTokenProvider;
 import com.itssum.support.SecurityTestConfig;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -49,6 +56,46 @@ class NeededItemControllerTest {
 
     @MockitoBean
     private NeededItemCommandService commandService;
+
+    @MockitoBean
+    private NeededItemQueryService queryService;
+
+    @Test
+    void donorBrowses200() throws Exception {
+        when(queryService.browse(eq(1L), any(), isNull(), eq(20))).thenReturn(new ItemPageResponse<>(List.of(), null, false));
+
+        perform(get("/api/needed-items").param("keyword", "생수").param("condition", "HIGH"), 1L, UserRole.DONOR, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_9"));
+        verify(queryService).browse(1L, new ItemSearchCondition("생수", null, null, ConditionGrade.HIGH), null, 20);
+    }
+
+    @Test
+    void anyMemberSeesDetail() throws Exception {
+        when(queryService.detail(1L, 20L)).thenReturn(DETAIL);
+
+        perform(get("/api/needed-items/20"), 1L, UserRole.DONOR, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_10"))
+                .andExpect(jsonPath("$.data.verificationStatus").value("VERIFIED"));
+    }
+
+    @Test
+    void organizationListsMine() throws Exception {
+        when(queryService.mine(2L, null, null, 20)).thenReturn(new ItemPageResponse<>(List.of(), null, false));
+
+        perform(get("/api/organizations/me/needed-items"), 2L, UserRole.ORGANIZATION, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_13"));
+    }
+
+    @Test
+    void donorCannotListOrganizationMine403() throws Exception {
+        perform(get("/api/organizations/me/needed-items"), 1L, UserRole.DONOR, null)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMMON_403"));
+        verifyNoInteractions(queryService);
+    }
 
     @Test
     void organizationCreates201() throws Exception {

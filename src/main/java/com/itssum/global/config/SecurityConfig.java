@@ -77,7 +77,7 @@ public class SecurityConfig {
                         .requestMatchers("/ws", "/ws/**").permitAll()
                         // 내 정보 API 는 역할별로 막는다 (다른 역할이면 403)
                         .requestMatchers("/api/donors/me", "/api/donors/me/**").hasRole("DONOR")
-                        .requestMatchers("/api/organizations/me").hasRole("ORGANIZATION")
+                        .requestMatchers("/api/organizations/me", "/api/organizations/me/**").hasRole("ORGANIZATION")
                         // 물품 쓰기는 역할별로 막는다: 기부 물품은 기부자, 필요 물품은 기관 (소유자 확인은 서비스)
                         .requestMatchers(HttpMethod.POST, "/api/donation-items", "/api/donation-items/images/presign")
                         .hasRole("DONOR")
