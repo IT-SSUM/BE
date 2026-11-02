@@ -6,11 +6,14 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.itssum.domain.item.dto.request.UpdateNeededItemRequest;
 import com.itssum.domain.item.dto.response.ItemPageResponse;
 import com.itssum.domain.item.dto.response.NeededItemDetailResponse;
 import com.itssum.domain.item.entity.ConditionGrade;
@@ -87,6 +90,34 @@ class NeededItemControllerTest {
         perform(get("/api/organizations/me/needed-items"), 2L, UserRole.ORGANIZATION, null)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("ITEM_200_13"));
+    }
+
+    @Test
+    void organizationPatches200() throws Exception {
+        when(commandService.update(eq(2L), eq(20L), any())).thenReturn(DETAIL);
+
+        perform(patch("/api/needed-items/20"), 2L, UserRole.ORGANIZATION, "{\"receiveAddress\": \"\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_11"));
+        verify(commandService).update(2L, 20L, new UpdateNeededItemRequest(null, "", null));
+    }
+
+    @Test
+    void donorCannotPatchOrDelete403() throws Exception {
+        perform(patch("/api/needed-items/20"), 1L, UserRole.DONOR, "{\"description\": \"x\"}")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMMON_403"));
+        perform(delete("/api/needed-items/20"), 1L, UserRole.DONOR, null)
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(commandService);
+    }
+
+    @Test
+    void organizationDeletes200() throws Exception {
+        perform(delete("/api/needed-items/20"), 2L, UserRole.ORGANIZATION, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_12"));
+        verify(commandService).delete(2L, 20L);
     }
 
     @Test

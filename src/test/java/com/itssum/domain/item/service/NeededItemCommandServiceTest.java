@@ -1,6 +1,7 @@
 package com.itssum.domain.item.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import com.itssum.domain.item.ItemFixtures;
 import com.itssum.domain.item.dto.request.CreateNeededItemRequest;
+import com.itssum.domain.item.dto.request.UpdateNeededItemRequest;
 import com.itssum.domain.item.dto.response.NeededItemDetailResponse;
 import com.itssum.domain.item.entity.ConditionGrade;
 import com.itssum.domain.item.entity.NeededItem;
@@ -24,6 +26,8 @@ import com.itssum.domain.item.image.ItemImages;
 import com.itssum.domain.item.repository.ItemCategoryRepository;
 import com.itssum.domain.item.repository.NeededItemRepository;
 import com.itssum.domain.item.repository.RegionRepository;
+import com.itssum.domain.match.entity.MatchStatus;
+import com.itssum.domain.match.repository.MatchRepository;
 import com.itssum.domain.user.entity.Organization;
 import com.itssum.domain.user.service.MemberReader;
 import com.itssum.global.exception.BusinessException;
@@ -46,8 +50,9 @@ class NeededItemCommandServiceTest {
     private final RegionRepository regionRepository = mock(RegionRepository.class);
     private final ItemImages itemImages = mock(ItemImages.class);
     private final NeededItemRepository neededItemRepository = mock(NeededItemRepository.class);
+    private final MatchRepository matchRepository = mock(MatchRepository.class);
     private final NeededItemCommandService service = new NeededItemCommandService(memberReader,
-            new ItemReferences(categoryRepository, regionRepository), itemImages, neededItemRepository,
+            new ItemReferences(categoryRepository, regionRepository), itemImages, neededItemRepository, matchRepository,
             new TransactionTemplate(mock(PlatformTransactionManager.class)));
 
     private Organization organization;
@@ -116,6 +121,100 @@ class NeededItemCommandServiceTest {
         assertEquals(ErrorCode.ITEM_IMAGE_NOT_UPLOADED, assertThrows(BusinessException.class,
                 () -> service.create(ORGANIZATION_ID, request("병", foreign))).getErrorCode());
         verify(neededItemRepository, never()).save(any());
+    }
+
+    @Test
+    void updateChangesSentFields() {
+        NeededItem item = existingItem();
+
+        NeededItemDetailResponse response = service.update(ORGANIZATION_ID, 20L,
+                new UpdateNeededItemRequest("평일 오후에 받아요", "경기 부천시 길주로 1", null));
+
+        assertEquals("평일 오후에 받아요", item.getDescription());
+        assertEquals("경기 부천시 길주로 1", item.getReceiveAddress());
+        assertEquals(REFERENCE_KEY, item.getReferenceImageUrl());
+        assertEquals("경기 부천시 길주로 1", response.receiveAddress());
+        verify(itemImages, never()).verifyUploaded(any(), any(), any());
+    }
+
+    @Test
+    void emptyValuesClear() {
+        NeededItem item = existingItem();
+
+        service.update(ORGANIZATION_ID, 20L, new UpdateNeededItemRequest("", " ", ""));
+
+        assertNull(item.getDescription());
+        assertNull(item.getReceiveAddress());
+        assertNull(item.getReferenceImageUrl());
+        verify(itemImages, never()).verifyUploaded(any(), any(), any());
+    }
+
+    @Test
+    void sameReferenceImageKeySkipsS3() {
+        NeededItem item = existingItem();
+
+        service.update(ORGANIZATION_ID, 20L, new UpdateNeededItemRequest(null, null, REFERENCE_KEY));
+
+        verify(itemImages, never()).verifyUploaded(any(), any(), any());
+        assertEquals(REFERENCE_KEY, item.getReferenceImageUrl());
+    }
+
+    @Test
+    void newReferenceImageKeyIsVerified() {
+        NeededItem item = existingItem();
+        String added = "needed-items/2/new.jpg";
+
+        service.update(ORGANIZATION_ID, 20L, new UpdateNeededItemRequest(null, null, added));
+
+        verify(itemImages).verifyUploaded(ItemImageKind.NEEDED, ORGANIZATION_ID, List.of(added));
+        assertEquals(added, item.getReferenceImageUrl());
+    }
+
+    @Test
+    void othersItemIs403() {
+        existingItem();
+
+        assertEquals(ErrorCode.ITEM_NOT_OWNER, assertThrows(BusinessException.class,
+                () -> service.update(9L, 20L, new UpdateNeededItemRequest("x", null, null))).getErrorCode());
+        assertEquals(ErrorCode.ITEM_NOT_OWNER,
+                assertThrows(BusinessException.class, () -> service.delete(9L, 20L)).getErrorCode());
+    }
+
+    @Test
+    void deletedItemIs404() {
+        existingItem().delete();
+
+        assertEquals(ErrorCode.ITEM_NOT_FOUND, assertThrows(BusinessException.class,
+                () -> service.update(ORGANIZATION_ID, 20L, new UpdateNeededItemRequest("x", null, null))).getErrorCode());
+        assertEquals(ErrorCode.ITEM_NOT_FOUND,
+                assertThrows(BusinessException.class, () -> service.delete(ORGANIZATION_ID, 20L)).getErrorCode());
+    }
+
+    @Test
+    void deleteBlockedWhilePendingMatch() {
+        NeededItem item = existingItem();
+        when(matchRepository.existsByNeededItemIdAndStatusNotIn(20L, MatchStatus.FINISHED)).thenReturn(true);
+
+        assertEquals(ErrorCode.ITEM_DELETE_BLOCKED,
+                assertThrows(BusinessException.class, () -> service.delete(ORGANIZATION_ID, 20L)).getErrorCode());
+        assertFalse(item.isDeleted());
+    }
+
+    @Test
+    void deleteSoftDeletesWithLock() {
+        NeededItem item = existingItem();
+
+        service.delete(ORGANIZATION_ID, 20L);
+
+        assertTrue(item.isDeleted());
+        verify(neededItemRepository).findByIdForUpdate(20L);
+    }
+
+    private NeededItem existingItem() {
+        NeededItem item = ItemFixtures.neededItem(20L, organization);
+        when(neededItemRepository.findById(20L)).thenReturn(Optional.of(item));
+        when(neededItemRepository.findByIdForUpdate(20L)).thenReturn(Optional.of(item));
+        return item;
     }
 
     private NeededItem savedItem() {

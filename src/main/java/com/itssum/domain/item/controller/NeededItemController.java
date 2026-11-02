@@ -1,6 +1,7 @@
 package com.itssum.domain.item.controller;
 
 import com.itssum.domain.item.dto.request.CreateNeededItemRequest;
+import com.itssum.domain.item.dto.request.UpdateNeededItemRequest;
 import com.itssum.domain.item.dto.response.ItemPageResponse;
 import com.itssum.domain.item.dto.response.MyNeededItemResponse;
 import com.itssum.domain.item.dto.response.NeededItemDetailResponse;
@@ -17,7 +18,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -85,6 +88,26 @@ public class NeededItemController {
             Principal principal) {
         return ApiResponse.ok(SuccessCode.ITEM_MY_NEEDED_FOUND,
                 queryService.mine(userId(principal), categoryId, beforeId, size));
+    }
+
+    @Operation(summary = "필요 물품 수정",
+            description = "기관 「필요 나눔」 수정 화면의 항목(필요한 이유, 수령 장소, 참고 사진)만 바꿉니다. 보내지 않은 필드는 그대로 두고 "
+                    + "빈 값이면 비웁니다. 등록한 기관만 고칠 수 있습니다 (남의 물품 ITEM_403, 삭제된 물품 ITEM_404). "
+                    + "카테고리·품목·수량·단위·희망 상태는 진행 중인 거래와 추천의 기준이라 바꿀 수 없습니다.")
+    @PatchMapping("/api/needed-items/{neededItemId}")
+    public ApiResponse<NeededItemDetailResponse> update(@PathVariable Long neededItemId,
+                                                        @Valid @RequestBody UpdateNeededItemRequest request,
+                                                        Principal principal) {
+        return ApiResponse.ok(SuccessCode.ITEM_NEEDED_UPDATED,
+                commandService.update(userId(principal), neededItemId, request));
+    }
+
+    @Operation(summary = "필요 물품 삭제",
+            description = "등록한 기관만 지울 수 있습니다. 응답 대기 중인 제안·요청이나 거래중·예약중인 거래가 있으면 ITEM_409 입니다.")
+    @DeleteMapping("/api/needed-items/{neededItemId}")
+    public ApiResponse<Void> delete(@PathVariable Long neededItemId, Principal principal) {
+        commandService.delete(userId(principal), neededItemId);
+        return ApiResponse.ok(SuccessCode.ITEM_NEEDED_DELETED);
     }
 
     private static Long userId(Principal principal) {

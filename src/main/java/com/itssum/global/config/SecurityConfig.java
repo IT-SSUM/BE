@@ -85,6 +85,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/donation-items/*").hasRole("DONOR")
                         .requestMatchers(HttpMethod.POST, "/api/needed-items", "/api/needed-items/images/presign")
                         .hasRole("ORGANIZATION")
+                        .requestMatchers(HttpMethod.PATCH, "/api/needed-items/*").hasRole("ORGANIZATION")
+                        .requestMatchers(HttpMethod.DELETE, "/api/needed-items/*").hasRole("ORGANIZATION")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .bearerTokenResolver(new PublicPathBearerTokenResolver(PUBLIC_AUTH_PATHS))
