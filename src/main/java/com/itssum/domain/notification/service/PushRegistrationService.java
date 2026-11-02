@@ -28,8 +28,9 @@ public class PushRegistrationService {
     @Transactional
     public void delete(Long userId, Long pushRegistrationId) {
         PushRegistration registration = repository.findById(pushRegistrationId)
-                .filter(found -> found.getUser().getId().equals(userId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PUSH_REGISTRATION_NOT_FOUND));
-        repository.delete(registration);
+        if (repository.deleteIfStillOwned(registration.getId(), registration.getFid(), userId) == 0) {
+            throw new BusinessException(ErrorCode.PUSH_REGISTRATION_NOT_FOUND);
+        }
     }
 }

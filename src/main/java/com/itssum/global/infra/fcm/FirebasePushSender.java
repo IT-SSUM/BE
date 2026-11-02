@@ -36,7 +36,8 @@ public class FirebasePushSender implements PushSender {
             messaging.send(message.build());
             return PushDeliveryResult.SENT;
         } catch (FirebaseMessagingException exception) {
-            if (exception.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
+            if (exception.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED
+                    || exception.getMessagingErrorCode() == MessagingErrorCode.INVALID_ARGUMENT) {
                 return PushDeliveryResult.INVALID_REGISTRATION;
             }
             log.warn("FCM 전송에 실패했습니다. notificationId={}, errorCode={}",
