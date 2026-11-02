@@ -34,4 +34,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     boolean existsByDonorIdAndStatusNotIn(Long donorId, Collection<MatchStatus> statuses);
 
     boolean existsByOrganizationIdAndStatusNotIn(Long organizationId, Collection<MatchStatus> statuses);
+
+    /** 물품 삭제 검사용: 이 물품에 주어진 상태(끝난 상태)가 아닌 매칭이 남아 있는지 */
+    boolean existsByDonationItemIdAndStatusNotIn(Long donationItemId, Collection<MatchStatus> statuses);
+
+    boolean existsByNeededItemIdAndStatusNotIn(Long neededItemId, Collection<MatchStatus> statuses);
 }
