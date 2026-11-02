@@ -1,6 +1,7 @@
 package com.itssum.domain.item.controller;
 
 import com.itssum.domain.item.dto.request.CreateDonationItemRequest;
+import com.itssum.domain.item.dto.request.UpdateDonationItemRequest;
 import com.itssum.domain.item.dto.response.DonationItemDetailResponse;
 import com.itssum.domain.item.dto.response.DonationItemSummaryResponse;
 import com.itssum.domain.item.dto.response.ItemPageResponse;
@@ -17,7 +18,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -85,6 +88,27 @@ public class DonationItemController {
             Principal principal) {
         return ApiResponse.ok(SuccessCode.ITEM_MY_DONATIONS_FOUND,
                 queryService.mine(userId(principal), categoryId, beforeId, size));
+    }
+
+    @Operation(summary = "기부 물품 수정",
+            description = "기부자 「물품 수정」 화면의 항목(설명, 물품 위치, 상세 주소, 사진)만 바꿉니다. 보내지 않은 필드는 그대로 둡니다. "
+                    + "등록한 기부자만 고칠 수 있습니다 (남의 물품 ITEM_403, 삭제된 물품 ITEM_404). "
+                    + "카테고리·품목·수량·단위·물품 상태는 진행 중인 거래와 추천의 기준이라 바꿀 수 없습니다.")
+    @PatchMapping("/api/donation-items/{donationItemId}")
+    public ApiResponse<DonationItemDetailResponse> update(@PathVariable Long donationItemId,
+                                                          @Valid @RequestBody UpdateDonationItemRequest request,
+                                                          Principal principal) {
+        return ApiResponse.ok(SuccessCode.ITEM_DONATION_UPDATED,
+                commandService.update(userId(principal), donationItemId, request));
+    }
+
+    @Operation(summary = "기부 물품 삭제",
+            description = "등록한 기부자만 지울 수 있습니다. 응답 대기 중인 제안·요청이나 거래중·예약중인 거래가 있으면 ITEM_409 입니다 "
+                    + "(Figma \"예약된 물품은 삭제할 수 없어요\").")
+    @DeleteMapping("/api/donation-items/{donationItemId}")
+    public ApiResponse<Void> delete(@PathVariable Long donationItemId, Principal principal) {
+        commandService.delete(userId(principal), donationItemId);
+        return ApiResponse.ok(SuccessCode.ITEM_DONATION_DELETED);
     }
 
     private static Long userId(Principal principal) {

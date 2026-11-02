@@ -81,6 +81,8 @@ public class SecurityConfig {
                         // 물품 쓰기는 역할별로 막는다: 기부 물품은 기부자, 필요 물품은 기관 (소유자 확인은 서비스)
                         .requestMatchers(HttpMethod.POST, "/api/donation-items", "/api/donation-items/images/presign")
                         .hasRole("DONOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/donation-items/*").hasRole("DONOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/donation-items/*").hasRole("DONOR")
                         .requestMatchers(HttpMethod.POST, "/api/needed-items/images/presign").hasRole("ORGANIZATION")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

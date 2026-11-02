@@ -6,11 +6,14 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.itssum.domain.item.dto.request.UpdateDonationItemRequest;
 import com.itssum.domain.item.dto.response.DonationItemDetailResponse;
 import com.itssum.domain.item.dto.response.ItemPageResponse;
 import com.itssum.domain.item.entity.ConditionGrade;
@@ -96,6 +99,51 @@ class DonationItemControllerTest {
         perform(get("/api/donors/me/donation-items").param("categoryId", "5"), 1L, UserRole.DONOR, null)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("ITEM_200_8"));
+    }
+
+    @Test
+    void donorPatches200() throws Exception {
+        when(commandService.update(eq(1L), eq(10L), any())).thenReturn(DETAIL);
+
+        perform(patch("/api/donation-items/10"), 1L, UserRole.DONOR, "{\"description\": \"새 설명\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_6"));
+        verify(commandService).update(1L, 10L, new UpdateDonationItemRequest("새 설명", null, null, null));
+    }
+
+    @Test
+    void patchBlankPickupAddressIs400() throws Exception {
+        perform(patch("/api/donation-items/10"), 1L, UserRole.DONOR, "{\"pickupAddress\": \"   \"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_400"));
+        verifyNoInteractions(commandService);
+    }
+
+    @Test
+    void patchEmptyImageListIs400() throws Exception {
+        perform(patch("/api/donation-items/10"), 1L, UserRole.DONOR, "{\"imageKeys\": []}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_400"));
+        verifyNoInteractions(commandService);
+    }
+
+    @Test
+    void organizationCannotPatchOrDelete403() throws Exception {
+        perform(patch("/api/donation-items/10"), 2L, UserRole.ORGANIZATION, "{\"description\": \"x\"}")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMMON_403"));
+        perform(delete("/api/donation-items/10"), 2L, UserRole.ORGANIZATION, null)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMMON_403"));
+        verifyNoInteractions(commandService);
+    }
+
+    @Test
+    void donorDeletes200() throws Exception {
+        perform(delete("/api/donation-items/10"), 1L, UserRole.DONOR, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_7"));
+        verify(commandService).delete(1L, 10L);
     }
 
     @Test

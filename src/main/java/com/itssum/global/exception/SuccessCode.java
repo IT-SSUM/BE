@@ -40,6 +40,8 @@ public enum SuccessCode {
     ITEM_IMAGE_UPLOAD_URL_ISSUED(HttpStatus.OK, "ITEM_200_3", "물품 사진 업로드 URL을 발급했습니다."),
     ITEM_DONATION_LIST_FOUND(HttpStatus.OK, "ITEM_200_4", "기부 물품 목록을 조회했습니다."),
     ITEM_DONATION_FOUND(HttpStatus.OK, "ITEM_200_5", "기부 물품을 조회했습니다."),
+    ITEM_DONATION_UPDATED(HttpStatus.OK, "ITEM_200_6", "기부 물품을 수정했습니다."),
+    ITEM_DONATION_DELETED(HttpStatus.OK, "ITEM_200_7", "기부 물품을 삭제했습니다."),
     ITEM_MY_DONATIONS_FOUND(HttpStatus.OK, "ITEM_200_8", "내가 등록한 기부 물품 목록을 조회했습니다."),
     ITEM_DONATION_CREATED(HttpStatus.CREATED, "ITEM_201", "기부 물품을 등록했습니다."),
 
