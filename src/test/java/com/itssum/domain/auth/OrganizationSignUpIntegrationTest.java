@@ -73,6 +73,7 @@ class OrganizationSignUpIntegrationTest {
         jdbcTemplate.update("delete from organizations where user_id in " + userIds, email);
         jdbcTemplate.update("delete from refresh_tokens where user_id in " + userIds, email);
         jdbcTemplate.update("delete from terms_agreements where user_id in " + userIds, email);
+        jdbcTemplate.update("delete from notification_settings where user_id in " + userIds, email);
         jdbcTemplate.update("delete from users where email = ?", email);
     }
 

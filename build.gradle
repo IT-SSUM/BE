@@ -26,6 +26,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	implementation 'com.google.firebase:firebase-admin:9.11.0'
 	// 이메일 인증번호 임시 저장 (버전은 Boot 가 관리)
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 	implementation platform('software.amazon.awssdk:bom:2.57.3')

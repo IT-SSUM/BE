@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,6 +44,8 @@ import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.infra.kakao.GeoPoint;
 import com.itssum.global.security.AccessTokenProvider;
+import com.itssum.domain.notification.entity.NotificationSetting;
+import com.itssum.domain.notification.repository.NotificationSettingRepository;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -80,6 +83,7 @@ class AuthServiceTest {
     private final OrganizationVerificationRepository organizationVerificationRepository =
             mock(OrganizationVerificationRepository.class);
     private final TermsAgreementRepository termsAgreementRepository = mock(TermsAgreementRepository.class);
+    private final NotificationSettingRepository notificationSettingRepository = mock(NotificationSettingRepository.class);
     private final RegionRepository regionRepository = mock(RegionRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final AccessTokenProvider accessTokenProvider = mock(AccessTokenProvider.class);
@@ -89,7 +93,8 @@ class AuthServiceTest {
     private final AddressGeocoder addressGeocoder = mock(AddressGeocoder.class);
     private final PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
     private final AuthService service = new AuthService(userRepository, donorRepository, organizationRepository,
-            organizationVerificationRepository, termsAgreementRepository, regionRepository, passwordEncoder,
+            organizationVerificationRepository, termsAgreementRepository, notificationSettingRepository,
+            regionRepository, passwordEncoder,
             accessTokenProvider, refreshTokenService, emailVerificationStore, businessVerificationStore,
             addressGeocoder, new TransactionTemplate(transactionManager), PROPERTIES);
     private final Region bucheon = mock(Region.class);
@@ -118,6 +123,11 @@ class AuthServiceTest {
         assertEquals(new AuthTokenResponse(1L, UserRole.DONOR, "access", "refresh"), response);
         ArgumentCaptor<User> user = ArgumentCaptor.forClass(User.class);
         verify(userRepository).saveAndFlush(user.capture());
+        ArgumentCaptor<NotificationSetting> setting = ArgumentCaptor.forClass(NotificationSetting.class);
+        verify(notificationSettingRepository).save(setting.capture());
+        assertEquals(user.getValue(), setting.getValue().getUser());
+        assertTrue(setting.getValue().isMatchEnabled());
+        assertTrue(setting.getValue().isChatEnabled());
         assertEquals(EMAIL, user.getValue().getEmail());
         assertEquals("hashed", user.getValue().getPassword());
         assertEquals(UserRole.DONOR, user.getValue().getRole());

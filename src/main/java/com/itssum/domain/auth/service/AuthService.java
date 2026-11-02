@@ -9,6 +9,8 @@ import com.itssum.domain.auth.dto.request.SignUpOrganizationRequest;
 import com.itssum.domain.auth.dto.response.AuthTokenResponse;
 import com.itssum.domain.item.entity.Region;
 import com.itssum.domain.item.repository.RegionRepository;
+import com.itssum.domain.notification.entity.NotificationSetting;
+import com.itssum.domain.notification.repository.NotificationSettingRepository;
 import com.itssum.domain.user.entity.Donor;
 import com.itssum.domain.user.entity.Organization;
 import com.itssum.domain.user.entity.OrganizationVerification;
@@ -55,6 +57,7 @@ public class AuthService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationVerificationRepository organizationVerificationRepository;
     private final TermsAgreementRepository termsAgreementRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
     private final RegionRepository regionRepository;
     private final PasswordEncoder passwordEncoder;
     private final AccessTokenProvider accessTokenProvider;
@@ -191,11 +194,13 @@ public class AuthService {
 
     private User saveUser(String email, String rawPassword, UserRole role) {
         try {
-            return userRepository.saveAndFlush(User.builder()
+            User user = userRepository.saveAndFlush(User.builder()
                     .email(email)
                     .password(passwordEncoder.encode(rawPassword))
                     .role(role)
                     .build());
+            notificationSettingRepository.save(NotificationSetting.createDefault(user));
+            return user;
         } catch (DataIntegrityViolationException e) {
             // 동시에 같은 이메일로 가입해 UQ_users_email 에 걸린 경우
             throw new BusinessException(ErrorCode.AUTH_EMAIL_DUPLICATED);

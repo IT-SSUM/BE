@@ -24,34 +24,34 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * 기기별 1행. 같은 토큰이 다른 계정으로 다시 등록되면 user_id 를 갱신한다.
+ * 기기별 1행. 같은 설치 ID가 다른 계정으로 다시 등록되면 user_id 를 갱신한다.
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "push_tokens",
-        comment = "푸시 토큰",
-        uniqueConstraints = @UniqueConstraint(name = "UQ_push_tokens_token", columnNames = "token")
+        name = "push_registrations",
+        comment = "푸시 등록",
+        uniqueConstraints = @UniqueConstraint(name = "UQ_push_registrations_fid", columnNames = "fid")
 )
 @AttributeOverride(name = "createdAt", column = @Column(
         name = "created_at", nullable = false, updatable = false, secondPrecision = 0, comment = "등록 일시"))
 @AttributeOverride(name = "updatedAt", column = @Column(
         name = "updated_at", nullable = false, secondPrecision = 0, comment = "갱신 일시 (마지막 등록 요청)"))
-public class PushToken extends BaseTimeEntity {
+public class PushRegistration extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "push_token_id", comment = "푸시 토큰 ID")
+    @Column(name = "push_registration_id", comment = "푸시 등록 ID")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false,
-            foreignKey = @ForeignKey(name = "FK_users_TO_push_tokens"), comment = "회원 ID")
+            foreignKey = @ForeignKey(name = "FK_users_TO_push_registrations"), comment = "회원 ID")
     private User user;
 
-    @Column(nullable = false, length = 255, comment = "FCM 등록 토큰")
-    private String token;
+    @Column(nullable = false, length = 255, comment = "FCM 설치 ID")
+    private String fid;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
@@ -59,9 +59,9 @@ public class PushToken extends BaseTimeEntity {
     private DeviceType deviceType;
 
     @Builder
-    private PushToken(User user, String token, DeviceType deviceType) {
+    private PushRegistration(User user, String fid, DeviceType deviceType) {
         this.user = user;
-        this.token = token;
+        this.fid = fid;
         this.deviceType = deviceType;
     }
 }
