@@ -38,6 +38,9 @@ public enum SuccessCode {
     ITEM_CATEGORIES_FOUND(HttpStatus.OK, "ITEM_200_1", "물품 카테고리 목록을 조회했습니다."),
     ITEM_UNITS_FOUND(HttpStatus.OK, "ITEM_200_2", "물품 단위 목록을 조회했습니다."),
     ITEM_IMAGE_UPLOAD_URL_ISSUED(HttpStatus.OK, "ITEM_200_3", "물품 사진 업로드 URL을 발급했습니다."),
+    ITEM_DONATION_LIST_FOUND(HttpStatus.OK, "ITEM_200_4", "기부 물품 목록을 조회했습니다."),
+    ITEM_DONATION_FOUND(HttpStatus.OK, "ITEM_200_5", "기부 물품을 조회했습니다."),
+    ITEM_MY_DONATIONS_FOUND(HttpStatus.OK, "ITEM_200_8", "내가 등록한 기부 물품 목록을 조회했습니다."),
     ITEM_DONATION_CREATED(HttpStatus.CREATED, "ITEM_201", "기부 물품을 등록했습니다."),
 
     // ---------- 매칭 ----------

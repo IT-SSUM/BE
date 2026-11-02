@@ -2,16 +2,22 @@ package com.itssum.domain.item.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.itssum.domain.item.dto.response.DonationItemDetailResponse;
+import com.itssum.domain.item.dto.response.ItemPageResponse;
 import com.itssum.domain.item.entity.ConditionGrade;
 import com.itssum.domain.item.entity.DonationItemStatus;
 import com.itssum.domain.item.service.DonationItemCommandService;
+import com.itssum.domain.item.service.DonationItemQueryService;
+import com.itssum.domain.item.service.ItemSearchCondition;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.global.security.AccessTokenProvider;
 import com.itssum.support.SecurityTestConfig;
@@ -49,6 +55,56 @@ class DonationItemControllerTest {
 
     @MockitoBean
     private DonationItemCommandService commandService;
+
+    @MockitoBean
+    private DonationItemQueryService queryService;
+
+    @Test
+    void organizationBrowses200() throws Exception {
+        when(queryService.browse(eq(2L), any(), eq(30L), eq(10))).thenReturn(new ItemPageResponse<>(List.of(), null, false));
+
+        perform(get("/api/donation-items").param("keyword", "수건").param("categoryId", "1").param("condition", "MID")
+                .param("beforeId", "30").param("size", "10"), 2L, UserRole.ORGANIZATION, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_4"))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+        verify(queryService).browse(2L, new ItemSearchCondition("수건", 1L, null, ConditionGrade.MID), 30L, 10);
+    }
+
+    @Test
+    void donorBrowsesToo200() throws Exception {
+        when(queryService.browse(eq(1L), any(), isNull(), eq(20))).thenReturn(new ItemPageResponse<>(List.of(), null, false));
+
+        perform(get("/api/donation-items"), 1L, UserRole.DONOR, null)
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void anyMemberSeesDetail() throws Exception {
+        when(queryService.detail(2L, 10L)).thenReturn(DETAIL);
+
+        perform(get("/api/donation-items/10"), 2L, UserRole.ORGANIZATION, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_5"))
+                .andExpect(jsonPath("$.data.itemName").value("수건"));
+    }
+
+    @Test
+    void donorListsMine() throws Exception {
+        when(queryService.mine(1L, 5L, null, 20)).thenReturn(new ItemPageResponse<>(List.of(), null, false));
+
+        perform(get("/api/donors/me/donation-items").param("categoryId", "5"), 1L, UserRole.DONOR, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_8"));
+    }
+
+    @Test
+    void organizationCannotListDonorMine403() throws Exception {
+        perform(get("/api/donors/me/donation-items"), 2L, UserRole.ORGANIZATION, null)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMMON_403"));
+        verifyNoInteractions(queryService);
+    }
 
     @Test
     void donorCreates201() throws Exception {
