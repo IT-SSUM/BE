@@ -70,7 +70,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(SWAGGER_PATHS).permitAll()
                         // 기준 데이터 조회는 비로그인 상태(회원가입·둘러보기)에서도 쓴다
-                        .requestMatchers(HttpMethod.GET, "/api/item-conditions").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/item-conditions", "/api/item-categories", "/api/item-units")
+                        .permitAll()
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_PATHS).permitAll()
                         // WebSocket 핸드셰이크. 인증은 STOMP CONNECT 에서 한다 (StompAuthenticationInterceptor)
                         .requestMatchers("/ws", "/ws/**").permitAll()

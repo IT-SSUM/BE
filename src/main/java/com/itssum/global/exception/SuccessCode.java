@@ -35,6 +35,8 @@ public enum SuccessCode {
 
     // ---------- 물품 ----------
     ITEM_CONDITIONS_FOUND(HttpStatus.OK, "ITEM_200", "물품 상태 기준을 조회했습니다."),
+    ITEM_CATEGORIES_FOUND(HttpStatus.OK, "ITEM_200_1", "물품 카테고리 목록을 조회했습니다."),
+    ITEM_UNITS_FOUND(HttpStatus.OK, "ITEM_200_2", "물품 단위 목록을 조회했습니다."),
 
     // ---------- 매칭 ----------
     MATCH_LIST_FOUND(HttpStatus.OK, "MATCH_200", "매칭 목록을 조회했습니다."),

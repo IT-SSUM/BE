@@ -69,6 +69,15 @@ class SecurityConfigTest {
     }
 
     @Test
+    void itemCategoriesAndUnitsStayPublic() throws Exception {
+        // 컨트롤러가 없어 404 지만 인가 단계(401)는 통과해야 한다
+        mockMvc.perform(get("/api/item-categories"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/item-units"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void preflightFromLocalFrontendOriginsIsAllowed() throws Exception {
         for (String origin : new String[] {"http://localhost:3000", "http://localhost:5173"}) {
             mockMvc.perform(options("/api/test/me")
