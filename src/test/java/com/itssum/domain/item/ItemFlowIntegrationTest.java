@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.itssum.domain.item.image.ItemImageStorage;
 import com.itssum.domain.item.repository.DonationItemRepository;
 import com.itssum.domain.item.repository.NeededItemRepository;
+import com.itssum.domain.item.service.DonationItemCommandService;
 import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.RequesterType;
 import com.itssum.domain.match.repository.MatchRepository;
@@ -38,6 +39,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +62,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 기준 데이터 조회 → 기부 물품·필요 물품 등록 → 탐색·상세 → 수정 → 진행 중 매칭이 있을 때 삭제 막힘 → 삭제까지 실제 DB 로 확인한다.
+ * 삭제와 매칭 요청이 겹칠 때의 잠금도 확인하므로 테스트 트랜잭션을 쓰지 않는다.
  * S3 와 카카오는 대체하고, 만든 행은 회원 ID 로 지운다.
  */
 @SpringBootTest
@@ -87,6 +94,9 @@ class ItemFlowIntegrationTest {
 
     @Autowired
     private MatchRepository matchRepository;
+
+    @Autowired
+    private DonationItemCommandService donationItemCommandService;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -129,6 +139,7 @@ class ItemFlowIntegrationTest {
 
     @AfterEach
     void cleanUp() {
+        jdbcTemplate.update("delete from notifications where receiver_id in (?, ?)", donorId, organizationId);
         jdbcTemplate.update("delete from matches where donor_id = ? or organization_id = ?", donorId, organizationId);
         jdbcTemplate.update("delete i from donation_item_images i join donation_items d "
                 + "on i.donation_item_id = d.donation_item_id where d.donor_id = ?", donorId);
@@ -237,6 +248,56 @@ class ItemFlowIntegrationTest {
         perform(delete("/api/needed-items/" + neededItemId), organizationId, UserRole.ORGANIZATION, null)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("ITEM_200_12"));
+    }
+
+    /**
+     * 기부자가 물품을 지우는 중에 기관이 매칭을 요청하면, 요청은 삭제가 끝날 때까지 기다렸다가 거절된다.
+     * 물품을 잠그지 않고 읽으면 삭제 전 물품을 보고 매칭을 저장해서, 삭제된 물품에 응답 대기 매칭이 남는다.
+     */
+    @Test
+    void matchRequestDuringItemDeletionIsRejected() throws Exception {
+        Long donationItemId = id(perform(post("/api/donation-items"), donorId, UserRole.DONOR, """
+                {"categoryId": 1, "itemName": "생수%s", "quantity": 10, "unit": "병", "conditionGrade": "HIGH",
+                 "imageKeys": ["donation-items/%d/%s.jpg"], "pickupAddress": "경기 부천시 길주로 210"}
+                """.formatted(token, donorId, UUID.randomUUID()))
+                .andExpect(status().isCreated()), "$.data.donationItemId");
+        Long neededItemId = id(perform(post("/api/needed-items"), organizationId, UserRole.ORGANIZATION, """
+                {"categoryId": 1, "itemName": "생수%s", "requiredQuantity": 10, "unit": "병", "desiredCondition": "MID"}
+                """.formatted(token))
+                .andExpect(status().isCreated()), "$.data.neededItemId");
+        CountDownLatch checked = new CountDownLatch(1);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            // B: 삭제가 진행 중인 매칭이 없다고 확인한 뒤에 기관이 매칭을 요청한다
+            Future<String> request = executor.submit(() -> {
+                checked.await();
+                return perform(post("/api/matches"), organizationId, UserRole.ORGANIZATION, """
+                        {"donationItemId": %d, "neededItemId": %d, "quantity": 5}
+                        """.formatted(donationItemId, neededItemId))
+                        .andReturn().getResponse().getContentAsString();
+            });
+            // A: 물품을 지우고 커밋 전에 잠시 멈춘다
+            transactionTemplate.executeWithoutResult(status -> {
+                donationItemCommandService.delete(donorId, donationItemId);
+                checked.countDown();
+                pause(1000);
+            });
+            assertEquals("MATCH_400", JsonPath.read(request.get(10, TimeUnit.SECONDS), "$.code"));
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "select count(*) from matches where donation_item_id = ?", Integer.class, donationItemId));
+    }
+
+    private static void pause(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 
     private ResultActions perform(MockHttpServletRequestBuilder request, Long userId, UserRole role, String body)

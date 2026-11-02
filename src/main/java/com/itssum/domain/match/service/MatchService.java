@@ -47,9 +47,10 @@ public class MatchService {
 
     @Transactional
     public MatchCreatedResponse create(User actor, CreateMatchRequest request) {
-        DonationItem donation = donationItemRepository.findById(request.donationItemId())
+        // 물품 삭제와 겹치지 않게 두 물품 행을 잠그고 읽는다 (예약·완료와 같은 순서: 기부 물품 → 필요 물품)
+        DonationItem donation = donationItemRepository.findByIdForUpdate(request.donationItemId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MATCH_INVALID_ITEM));
-        NeededItem needed = neededItemRepository.findById(request.neededItemId())
+        NeededItem needed = neededItemRepository.findByIdForUpdate(request.neededItemId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MATCH_INVALID_ITEM));
         if (donation.getDeletedAt() != null || needed.getDeletedAt() != null
                 || needed.getStatus() == NeededItemStatus.CLOSED

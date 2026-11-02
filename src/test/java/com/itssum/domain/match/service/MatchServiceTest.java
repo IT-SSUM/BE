@@ -99,8 +99,8 @@ class MatchServiceTest {
     @Test
     void creationWaitsForRecipientWithoutOpeningChatOrReservingQuantity() {
         when(donorUser.getRole()).thenReturn(UserRole.DONOR);
-        when(donations.findById(10L)).thenReturn(Optional.of(donation));
-        when(needs.findById(20L)).thenReturn(Optional.of(needed));
+        when(donations.findByIdForUpdate(10L)).thenReturn(Optional.of(donation));
+        when(needs.findByIdForUpdate(20L)).thenReturn(Optional.of(needed));
         when(matches.save(any(Match.class))).thenAnswer(call -> call.getArgument(0));
 
         var response = service.create(donorUser, new CreateMatchRequest(10L, 20L, 2, "도서를 기부합니다"));
