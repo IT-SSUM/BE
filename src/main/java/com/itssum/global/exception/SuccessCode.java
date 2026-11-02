@@ -44,6 +44,7 @@ public enum SuccessCode {
     ITEM_DONATION_DELETED(HttpStatus.OK, "ITEM_200_7", "기부 물품을 삭제했습니다."),
     ITEM_MY_DONATIONS_FOUND(HttpStatus.OK, "ITEM_200_8", "내가 등록한 기부 물품 목록을 조회했습니다."),
     ITEM_DONATION_CREATED(HttpStatus.CREATED, "ITEM_201", "기부 물품을 등록했습니다."),
+    ITEM_NEEDED_CREATED(HttpStatus.CREATED, "ITEM_201_1", "필요 물품을 등록했습니다."),
 
     // ---------- 매칭 ----------
     MATCH_LIST_FOUND(HttpStatus.OK, "MATCH_200", "매칭 목록을 조회했습니다."),

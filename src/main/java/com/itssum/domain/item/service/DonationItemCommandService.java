@@ -57,14 +57,14 @@ public class DonationItemCommandService {
                     .category(category)
                     .region(region)
                     .pickupAddress(pickupAddress)
-                    .pickupAddressDetail(blankToNull(request.pickupAddressDetail()))
+                    .pickupAddressDetail(ItemTexts.blankToNull(request.pickupAddressDetail()))
                     .latitude(location == null ? null : location.latitude())
                     .longitude(location == null ? null : location.longitude())
                     .itemName(request.itemName().strip())
                     .quantity(request.quantity())
                     .unit(unit)
                     .conditionGrade(request.conditionGrade())
-                    .description(blankToNull(request.description()))
+                    .description(ItemTexts.blankToNull(request.description()))
                     .build();
             item.replaceImages(imageKeys);
             donationItemRepository.save(item);
@@ -96,7 +96,7 @@ public class DonationItemCommandService {
             memberReader.lockActiveDonor(donorId);
             DonationItem item = lockOwnedItem(donationItemId, donorId);
             if (request.description() != null) {
-                item.changeDescription(blankToNull(request.description()));
+                item.changeDescription(ItemTexts.blankToNull(request.description()));
             }
             if (relocated) {
                 item.relocate(pickupAddress,
@@ -104,7 +104,7 @@ public class DonationItemCommandService {
                         location == null ? null : location.longitude());
             }
             if (request.pickupAddressDetail() != null) {
-                item.changePickupAddressDetail(blankToNull(request.pickupAddressDetail()));
+                item.changePickupAddressDetail(ItemTexts.blankToNull(request.pickupAddressDetail()));
             }
             if (imageKeys != null) {
                 item.replaceImages(imageKeys);
@@ -154,9 +154,5 @@ public class DonationItemCommandService {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "같은 사진을 두 번 올릴 수 없습니다.");
         }
         return keys;
-    }
-
-    static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
     }
 }
