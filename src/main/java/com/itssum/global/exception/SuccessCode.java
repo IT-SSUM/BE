@@ -57,7 +57,11 @@ public enum SuccessCode {
     NOTIFICATION_LIST_FOUND(HttpStatus.OK, "NOTIFICATION_200", "알림 목록을 조회했습니다."),
     NOTIFICATION_UNREAD_COUNT_FOUND(HttpStatus.OK, "NOTIFICATION_200_1", "안 읽은 알림 수를 조회했습니다."),
     NOTIFICATION_READ(HttpStatus.OK, "NOTIFICATION_200_2", "알림을 읽음 처리했습니다."),
-    NOTIFICATION_ALL_READ(HttpStatus.OK, "NOTIFICATION_200_3", "알림을 모두 읽음 처리했습니다.");
+    NOTIFICATION_ALL_READ(HttpStatus.OK, "NOTIFICATION_200_3", "알림을 모두 읽음 처리했습니다."),
+    NOTIFICATION_SETTINGS_FOUND(HttpStatus.OK, "NOTIFICATION_200_4", "알림 설정을 조회했습니다."),
+    NOTIFICATION_SETTINGS_UPDATED(HttpStatus.OK, "NOTIFICATION_200_5", "알림 설정을 수정했습니다."),
+    PUSH_REGISTRATION_DELETED(HttpStatus.OK, "NOTIFICATION_200_6", "푸시 등록을 삭제했습니다."),
+    PUSH_REGISTRATION_REGISTERED(HttpStatus.CREATED, "NOTIFICATION_201", "기기 푸시를 등록했습니다.");
 
     private final HttpStatus status;
     private final String code;

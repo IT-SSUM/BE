@@ -12,7 +12,7 @@
 -- v2 → v3 변경
 --   * 모든 테이블에 한글 COMMENT, utf8mb4 지정 (채팅 이모지 대비)
 --   + notification_settings   : GET/PATCH /api/users/me/notification-settings
---   + push_tokens             : POST/DELETE /api/users/me/push-tokens (후순위)
+--   + push_registrations             : POST/DELETE /api/users/me/push-registrations
 --   + password_reset_tokens   : Figma A13·A14 비밀번호 재설정(메일 링크)
 --   + refresh_tokens          : POST /api/auth/login, /tokens/refresh, /logout (기기별 리프레시 토큰)
 --   * donors        : birth_date 필수, region_id(활동 지역·선택), introduction(기부자 소개) 추가
@@ -288,27 +288,27 @@ CREATE TABLE `notifications` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='알림';
 
 -- [v3 추가] GET/PATCH /api/users/me/notification-settings
--- 회원가입 시 기본값(전부 ON)으로 1행 생성. ※ Figma에 알림 설정 화면이 아직 없어 항목은 임시
+-- 회원가입 시 기기 푸시 수신 설정을 기본값(전부 ON)으로 1행 생성
 CREATE TABLE `notification_settings` (
   `user_id`       BIGINT   NOT NULL COMMENT '회원 ID (users PK 공유)',
-  `match_enabled` BOOLEAN  NOT NULL DEFAULT TRUE COMMENT '매칭 알림 (제안·요청, 수락·거절, 예약, 전달 약속, 완료, 취소)',
-  `chat_enabled`  BOOLEAN  NOT NULL DEFAULT TRUE COMMENT '채팅 알림',
+  `match_enabled` BOOLEAN  NOT NULL DEFAULT TRUE COMMENT '매칭 기기 푸시 수신 여부',
+  `chat_enabled`  BOOLEAN  NOT NULL DEFAULT TRUE COMMENT '채팅 기기 푸시 수신 여부',
   `created_at`    DATETIME NOT NULL COMMENT '생성 일시',
   `updated_at`    DATETIME NOT NULL COMMENT '수정 일시',
   PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='알림 설정';
 
--- [v3 추가] POST /api/users/me/push-tokens, DELETE /api/users/me/push-tokens/{pushTokenId} (후순위)
--- 기기별 1행. 같은 토큰이 다른 계정으로 다시 등록되면 user_id 갱신
-CREATE TABLE `push_tokens` (
-  `push_token_id` BIGINT       NOT NULL AUTO_INCREMENT COMMENT '푸시 토큰 ID',
+-- [v3 추가] POST /api/users/me/push-registrations, DELETE /api/users/me/push-registrations/{pushRegistrationId}
+-- 기기별 1행. 같은 Firebase 설치 ID(FID)가 다른 계정으로 다시 등록되면 user_id 갱신
+CREATE TABLE `push_registrations` (
+  `push_registration_id` BIGINT       NOT NULL AUTO_INCREMENT COMMENT '푸시 등록 ID',
   `user_id`       BIGINT       NOT NULL COMMENT '회원 ID',
-  `token`         VARCHAR(255) NOT NULL COMMENT 'FCM 등록 토큰',
+  `fid`           VARCHAR(255) NOT NULL COMMENT 'Firebase 설치 ID',
   `device_type`   VARCHAR(20)  NOT NULL COMMENT 'ANDROID | IOS | WEB',
   `created_at`    DATETIME     NOT NULL COMMENT '등록 일시',
   `updated_at`    DATETIME     NOT NULL COMMENT '갱신 일시 (마지막 등록 요청)',
-  PRIMARY KEY (`push_token_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='푸시 토큰';
+  PRIMARY KEY (`push_registration_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='푸시 등록';
 
 -- [v3 추가] Figma A13 비밀번호 재설정(이메일 입력) → 메일 안내 → A14 새 비밀번호
 -- 메일 링크의 토큰은 원문 대신 SHA-256 해시만 저장, 1회 사용 후 used_at 기록
@@ -377,7 +377,7 @@ ALTER TABLE `chat_messages`     ADD CONSTRAINT `FK_users_TO_chat_messages`      
 
 ALTER TABLE `notifications`         ADD CONSTRAINT `FK_users_TO_notifications`         FOREIGN KEY (`receiver_id`) REFERENCES `users` (`user_id`);
 ALTER TABLE `notification_settings` ADD CONSTRAINT `FK_users_TO_notification_settings` FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
-ALTER TABLE `push_tokens`           ADD CONSTRAINT `FK_users_TO_push_tokens`           FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
+ALTER TABLE `push_registrations`           ADD CONSTRAINT `FK_users_TO_push_registrations`           FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 ALTER TABLE `password_reset_tokens` ADD CONSTRAINT `FK_users_TO_password_reset_tokens` FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 ALTER TABLE `refresh_tokens`        ADD CONSTRAINT `FK_users_TO_refresh_tokens`        FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`);
 
@@ -394,7 +394,7 @@ ALTER TABLE `chat_rooms`        ADD CONSTRAINT `UQ_chat_rooms_match`            
 ALTER TABLE `chat_participants` ADD CONSTRAINT `UQ_chat_participants_room_user`   UNIQUE (`chat_room_id`, `user_id`);
 ALTER TABLE `organization_recommendations`  ADD CONSTRAINT `UQ_org_rec_item_needed`  UNIQUE (`donation_item_id`, `needed_item_id`);
 ALTER TABLE `donation_item_recommendations` ADD CONSTRAINT `UQ_item_rec_needed_item` UNIQUE (`needed_item_id`, `donation_item_id`);
-ALTER TABLE `push_tokens`       ADD CONSTRAINT `UQ_push_tokens_token`             UNIQUE (`token`);
+ALTER TABLE `push_registrations`       ADD CONSTRAINT `UQ_push_registrations_fid`             UNIQUE (`fid`);
 ALTER TABLE `password_reset_tokens` ADD CONSTRAINT `UQ_password_reset_tokens_hash` UNIQUE (`token_hash`);
 ALTER TABLE `refresh_tokens`        ADD CONSTRAINT `UQ_refresh_tokens_hash`        UNIQUE (`token_hash`);
 

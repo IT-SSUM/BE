@@ -6,7 +6,7 @@ import com.itssum.domain.item.repository.DonationItemRepository;
 import com.itssum.domain.item.repository.NeededItemRepository;
 import com.itssum.domain.match.entity.MatchStatus;
 import com.itssum.domain.match.repository.MatchRepository;
-import com.itssum.domain.notification.repository.PushTokenRepository;
+import com.itssum.domain.notification.repository.PushRegistrationRepository;
 import com.itssum.domain.user.entity.Donor;
 import com.itssum.domain.user.entity.Organization;
 import com.itssum.domain.user.entity.User;
@@ -45,7 +45,7 @@ public class WithdrawalService {
     private final NeededItemRepository neededItemRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final PushTokenRepository pushTokenRepository;
+    private final PushRegistrationRepository pushRegistrationRepository;
 
     @Transactional
     public void withdraw(Long userId) {
@@ -71,7 +71,7 @@ public class WithdrawalService {
         }
         refreshTokenRepository.deleteAllByUserId(userId);
         passwordResetTokenRepository.deleteAllByUserId(userId);
-        pushTokenRepository.deleteAllByUserId(userId);
+        pushRegistrationRepository.deleteAllByUserId(userId);
         user.withdraw();
     }
 }

@@ -61,7 +61,8 @@ public enum ErrorCode {
     CHAT_IMAGE_STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "CHAT_503", "이미지 저장소가 준비되지 않았습니다."),
 
     // ---------- 알림 ----------
-    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_404", "알림을 찾을 수 없습니다.");
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_404", "알림을 찾을 수 없습니다."),
+    PUSH_REGISTRATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_404_1", "푸시 등록을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
 
 /**
- * 회원가입 시 기본값(전부 ON)으로 1행 생성한다. 알림 항목은 Figma 확정 전 임시.
+ * 회원가입 시 기기 푸시 수신 설정을 기본값(전부 ON)으로 1행 생성한다.
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -38,11 +38,11 @@ public class NotificationSetting extends BaseTimeEntity {
 
     @ColumnDefault("true")
     @Column(nullable = false, columnDefinition = "BOOLEAN",
-            comment = "매칭 알림 (제안·요청, 수락·거절, 예약, 전달 약속, 완료, 취소)")
+            comment = "매칭 기기 푸시 수신 여부")
     private boolean matchEnabled = true;
 
     @ColumnDefault("true")
-    @Column(nullable = false, columnDefinition = "BOOLEAN", comment = "채팅 알림")
+    @Column(nullable = false, columnDefinition = "BOOLEAN", comment = "채팅 기기 푸시 수신 여부")
     private boolean chatEnabled = true;
 
     private NotificationSetting(User user) {
@@ -51,5 +51,10 @@ public class NotificationSetting extends BaseTimeEntity {
 
     public static NotificationSetting createDefault(User user) {
         return new NotificationSetting(user);
+    }
+
+    public void update(boolean matchEnabled, boolean chatEnabled) {
+        this.matchEnabled = matchEnabled;
+        this.chatEnabled = chatEnabled;
     }
 }

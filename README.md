@@ -41,7 +41,7 @@
 | Build | Gradle (Groovy) |
 | 배포 | GitHub Actions, Docker, AWS EC2 · RDS, Nginx, Let's Encrypt |
 | API 문서 | springdoc-openapi (Swagger UI) |
-| 예정 | FCM (푸시) |
+| 알림 | FCM (기기 푸시) |
 
 <br>
 
@@ -59,7 +59,7 @@
 | 빨강 | 매칭 | `matches` |
 | 보라 | AI 추천 | `organization_recommendations`, `donation_item_recommendations` |
 | 청록 | 채팅 | `chat_rooms`, `chat_participants`, `chat_messages` |
-| 주황 | 알림 | `notifications`, `notification_settings`, `push_tokens` |
+| 주황 | 알림 | `notifications`, `notification_settings`, `push_registrations` |
 
 설계하면서 정한 것들
 
@@ -113,7 +113,7 @@ src/main/java/com/itssum
 │   ├── recommendation  # AI 추천 결과
 │   ├── match           # 매칭
 │   ├── chat            # 채팅방, 참여자, 메시지
-│   └── notification    # 알림, 알림 설정, 푸시 토큰
+│   └── notification    # 알림, 알림 설정, 푸시 등록
 │
 │   (도메인 공통)
 │   ├── controller

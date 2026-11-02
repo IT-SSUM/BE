@@ -49,6 +49,10 @@ chat:
   websocket:
     allowed-origins: ${cors.allowed-origins}
 
+push:
+  firebase:
+    enabled: ${FCM_ENABLED:false}
+
 management:
   endpoints:
     web:
