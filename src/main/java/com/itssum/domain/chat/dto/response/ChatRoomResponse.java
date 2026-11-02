@@ -15,7 +15,7 @@ public record ChatRoomResponse(
         @Schema(description = "이번 매칭의 거래 수량", example = "30") int quantity,
         @Schema(description = "물품 수량 단위", example = "권") String unit,
         @Schema(description = "매칭 상태", example = "RESERVED") MatchStatus matchStatus,
-        @Schema(description = "최근 메시지 미리보기. 이미지면 [사진]", example = "내일 전달 가능할까요?")
+        @Schema(description = "최근 메시지 미리보기. 이미지면 사진", example = "내일 전달 가능할까요?")
         String lastMessageContent,
         @Schema(description = "최근 메시지 전송 시각", example = "2026-10-29T18:30:00")
         LocalDateTime lastMessageAt,

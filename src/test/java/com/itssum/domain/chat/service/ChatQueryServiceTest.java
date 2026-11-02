@@ -25,6 +25,7 @@ import com.itssum.domain.chat.entity.MessageType;
 import com.itssum.domain.chat.image.ChatImageStorage;
 import com.itssum.domain.chat.repository.ChatMessageRepository;
 import com.itssum.domain.chat.repository.ChatParticipantRepository;
+import com.itssum.domain.notification.service.NotificationService;
 import com.itssum.domain.user.entity.User;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
@@ -45,8 +46,10 @@ class ChatQueryServiceTest {
     @SuppressWarnings("unchecked")
     private final ObjectProvider<ChatImageStorage> imageStorageProvider = mock(ObjectProvider.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final NotificationService notificationService = mock(NotificationService.class);
     private final ChatQueryService service = new ChatQueryService(
-            accessService, participants, messages, imageStorageProvider, eventPublisher, new ChatAppointmentCodec());
+            accessService, participants, messages, imageStorageProvider, eventPublisher,
+            new ChatAppointmentCodec(), notificationService);
 
     @Test
     void readPointerAdvancesOnlyForMessageInRoom() {
@@ -64,6 +67,7 @@ class ChatQueryServiceTest {
         assertEquals(1L, event.getValue().chatRoomId());
         assertEquals(10L, event.getValue().readerId());
         assertEquals(5L, event.getValue().lastReadMessageId());
+        verify(notificationService).markChatReadThrough(1L, 10L, 5L);
     }
 
     @Test

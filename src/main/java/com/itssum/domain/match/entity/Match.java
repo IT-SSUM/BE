@@ -39,7 +39,8 @@ import org.hibernate.type.SqlTypes;
         comment = "매칭",
         indexes = {
                 @Index(name = "IDX_matches_donor_status", columnList = "donor_id, status"),
-                @Index(name = "IDX_matches_org_status", columnList = "organization_id, status")
+                @Index(name = "IDX_matches_org_status", columnList = "organization_id, status"),
+                @Index(name = "IDX_matches_receipt_reminder", columnList = "status, scheduled_at, receipt_reminder_sent_at")
         }
 )
 public class Match extends BaseTimeEntity {
@@ -94,6 +95,9 @@ public class Match extends BaseTimeEntity {
 
     @Column(secondPrecision = 0, comment = "예약중 변경 일시")
     private LocalDateTime reservedAt;
+
+    @Column(secondPrecision = 0, comment = "전달 예정 시각 이후 기관에 수령 확인 알림을 보낸 일시")
+    private LocalDateTime receiptReminderSentAt;
 
     @Column(secondPrecision = 0, comment = "수령 확인 일시")
     private LocalDateTime completedAt;
@@ -154,6 +158,10 @@ public class Match extends BaseTimeEntity {
         this.completedAt = LocalDateTime.now();
     }
 
+    public void markReceiptReminderSent(LocalDateTime sentAt) {
+        this.receiptReminderSentAt = sentAt;
+    }
+
     public void cancel(User actor, String reason) {
         this.status = MatchStatus.CANCELED;
         this.canceledAt = LocalDateTime.now();
@@ -162,6 +170,9 @@ public class Match extends BaseTimeEntity {
     }
 
     public void confirmAppointment(DeliveryMethod method, LocalDateTime dateTime, String place, String receiver) {
+        if (!dateTime.equals(this.scheduledAt)) {
+            this.receiptReminderSentAt = null;
+        }
         this.deliveryMethod = method;
         this.scheduledAt = dateTime;
         this.deliveryPlace = place;

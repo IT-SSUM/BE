@@ -81,6 +81,18 @@ class SecurityConfigTest {
     }
 
     @Test
+    void preflightFromDeployedFrontendOriginsIsAllowed() throws Exception {
+        for (String origin : new String[] {"https://itssum.site", "https://www.itssum.site"}) {
+            mockMvc.perform(options("/api/test/me")
+                            .header(HttpHeaders.ORIGIN, origin)
+                            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PATCH")
+                            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization,content-type"))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin));
+        }
+    }
+
+    @Test
     void preflightFromUnknownOriginIsRejected() throws Exception {
         mockMvc.perform(options("/api/test/me")
                         .header(HttpHeaders.ORIGIN, "https://evil.example")

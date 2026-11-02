@@ -29,12 +29,15 @@ import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.MatchStatus;
 import com.itssum.domain.match.entity.RequesterType;
 import com.itssum.domain.match.repository.MatchRepository;
+import com.itssum.domain.notification.entity.NotificationType;
+import com.itssum.domain.notification.service.NotificationService;
 import com.itssum.domain.user.entity.Donor;
 import com.itssum.domain.user.entity.Organization;
 import com.itssum.domain.user.entity.User;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +52,8 @@ class MatchServiceTest {
     private final ChatRoomService rooms = mock(ChatRoomService.class);
     private final ChatRoomRepository roomRepository = mock(ChatRoomRepository.class);
     private final ChatRoom chatRoom = mock(ChatRoom.class);
-    private final MatchService service = new MatchService(matches, donations, needs, rooms, roomRepository);
+    private final NotificationService notifications = mock(NotificationService.class);
+    private final MatchService service = new MatchService(matches, donations, needs, rooms, roomRepository, notifications);
 
     private DonationItem donation;
     private NeededItem needed;
@@ -121,6 +125,7 @@ class MatchServiceTest {
         assertEquals(0, donation.getReservedQuantity());
         assertEquals(0, needed.getReservedQuantity());
         verify(rooms).createForMatch(match);
+        verify(notifications).createForMatch(match, donorUser, NotificationType.MATCH_ACCEPTED);
         assertEquals(ErrorCode.MATCH_INVALID_STATUS,
                 assertThrows(BusinessException.class, () -> service.accept(7L, donorUser)).getErrorCode());
     }
@@ -222,9 +227,12 @@ class MatchServiceTest {
         assertEquals("경기 부천시", response.donationItemRegion());
         assertEquals(3, response.donationItemAvailableQuantity());
         verify(rooms).createAppointmentCard(match, organizationUser);
+        match.markReceiptReminderSent(LocalDateTime.now());
+        assertNotNull(match.getReceiptReminderSentAt());
         ConfirmAppointmentRequest revision = new ConfirmAppointmentRequest(DeliveryMethod.DIRECT,
                 OffsetDateTime.now().plusDays(3), "변경된 장소", "담당자");
         assertEquals("변경된 장소", service.confirmAppointment(7L, donorUser, revision).deliveryPlace());
+        assertNull(match.getReceiptReminderSentAt());
         verify(rooms).createAppointmentCard(match, donorUser);
     }
 }

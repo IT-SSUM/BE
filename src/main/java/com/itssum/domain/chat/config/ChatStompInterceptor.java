@@ -29,11 +29,15 @@ public class ChatStompInterceptor implements ChannelInterceptor {
         } else if (command == StompCommand.SUBSCRIBE) {
             String destination = headers.getDestination();
             if (destination == null) {
-                throw new IllegalArgumentException("잘못된 채팅 구독 경로입니다.");
+                throw new IllegalArgumentException("허용되지 않는 구독 경로입니다.");
+            }
+            if (destination.equals("/user/queue/notifications")) {
+                userResolver.requireUser(headers.getUser());
+                return message;
             }
             Matcher matcher = CHAT_TOPIC.matcher(destination);
             if (!matcher.matches()) {
-                throw new IllegalArgumentException("잘못된 채팅 구독 경로입니다.");
+                throw new IllegalArgumentException("허용되지 않는 구독 경로입니다.");
             }
             Long userId = userResolver.requireUser(headers.getUser()).getId();
             accessService.requireRoomForParticipant(Long.valueOf(matcher.group(1)), userId);

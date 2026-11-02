@@ -58,7 +58,10 @@ public enum ErrorCode {
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_404", "채팅방을 찾을 수 없습니다."),
     CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_404_1", "채팅 메시지를 찾을 수 없습니다."),
     CHAT_READ_ONLY(HttpStatus.CONFLICT, "CHAT_409", "종료된 거래의 채팅방에는 메시지를 보낼 수 없습니다."),
-    CHAT_IMAGE_STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "CHAT_503", "이미지 저장소가 준비되지 않았습니다.");
+    CHAT_IMAGE_STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "CHAT_503", "이미지 저장소가 준비되지 않았습니다."),
+
+    // ---------- 알림 ----------
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_404", "알림을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
