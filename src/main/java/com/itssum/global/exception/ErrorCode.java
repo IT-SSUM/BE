@@ -45,7 +45,13 @@ public enum ErrorCode {
     REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "REGION_404", "지역을 찾을 수 없습니다."),
 
     // ---------- 물품 ----------
+    ITEM_UNIT_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "ITEM_400", "단위는 목록에 있는 값만 선택할 수 있습니다."),
     ITEM_IMAGE_NOT_UPLOADED(HttpStatus.BAD_REQUEST, "ITEM_400_1", "업로드된 물품 사진을 확인할 수 없습니다."),
+    ITEM_NOT_OWNER(HttpStatus.FORBIDDEN, "ITEM_403", "내가 등록한 물품만 수정·삭제할 수 있습니다."),
+    ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ITEM_404", "물품을 찾을 수 없습니다."),
+    ITEM_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "ITEM_404_1", "카테고리를 찾을 수 없습니다."),
+    ITEM_DELETE_BLOCKED(HttpStatus.CONFLICT, "ITEM_409",
+            "진행 중인 나눔이 있는 물품은 삭제할 수 없어요. 응답 대기 중인 제안·요청과 거래중·예약중인 거래를 먼저 마무리해 주세요."),
     ITEM_IMAGE_STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "ITEM_503", "이미지 저장소가 준비되지 않았습니다."),
 
     // ---------- 매칭 ----------

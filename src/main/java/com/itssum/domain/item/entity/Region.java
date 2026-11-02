@@ -44,4 +44,9 @@ public class Region {
         this.sido = sido;
         this.sigungu = sigungu;
     }
+
+    /** 화면 표시용 이름 ("경기 부천시"). */
+    public String displayName() {
+        return sido + " " + sigungu;
+    }
 }
