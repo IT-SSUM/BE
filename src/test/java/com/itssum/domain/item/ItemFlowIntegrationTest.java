@@ -35,6 +35,7 @@ import com.jayway.jsonpath.JsonPath;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -189,6 +190,19 @@ class ItemFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].donationItemId").value(donationItemId))
                 .andExpect(jsonPath("$.data.items[0].imageUrl", startsWith("https://example.com/donation-items/")));
+
+        // 사진 교체: 새 사진을 대표로, 기존 사진은 두 번째로 → DB 행과 목록 대표 사진이 바뀜
+        String newKey = "donation-items/" + donorId + "/" + UUID.randomUUID() + ".jpg";
+        perform(patch("/api/donation-items/" + donationItemId), donorId, UserRole.DONOR,
+                "{\"imageKeys\": [\"%s\", \"%s\"]}".formatted(newKey, imageKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.imageKeys[0]").value(newKey))
+                .andExpect(jsonPath("$.data.imageKeys[1]").value(imageKey));
+        assertEquals(List.of(newKey, imageKey), jdbcTemplate.queryForList(
+                "select image_url from donation_item_images where donation_item_id = ? order by sort_order",
+                String.class, donationItemId));
+        perform(get("/api/donation-items").param("keyword", token), organizationId, UserRole.ORGANIZATION, null)
+                .andExpect(jsonPath("$.data.items[0].imageUrl").value("https://example.com/" + newKey));
 
         // 기부자 탐색·상세: 수령 장소·참고 사진 key 는 숨김
         perform(get("/api/needed-items").param("keyword", token), donorId, UserRole.DONOR, null)
