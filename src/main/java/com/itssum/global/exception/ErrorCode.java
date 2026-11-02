@@ -44,6 +44,10 @@ public enum ErrorCode {
     REGION_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "REGION_400", "현재는 경기 부천시만 선택할 수 있습니다."),
     REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "REGION_404", "지역을 찾을 수 없습니다."),
 
+    // ---------- 물품 ----------
+    ITEM_IMAGE_NOT_UPLOADED(HttpStatus.BAD_REQUEST, "ITEM_400_1", "업로드된 물품 사진을 확인할 수 없습니다."),
+    ITEM_IMAGE_STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "ITEM_503", "이미지 저장소가 준비되지 않았습니다."),
+
     // ---------- 매칭 ----------
     MATCH_INVALID_ITEM(HttpStatus.BAD_REQUEST, "MATCH_400", "매칭할 수 없는 물품입니다."),
     MATCH_NOT_PARTICIPANT(HttpStatus.FORBIDDEN, "MATCH_403", "매칭 당사자만 접근할 수 있습니다."),
