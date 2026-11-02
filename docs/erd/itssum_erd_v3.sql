@@ -22,6 +22,8 @@
 --                     desired_condition 필수, reference_image_url(참고 사진) 추가
 --   * matches       : delivery_method(직접 전달/택배), scheduled_at(전달 일정) 추가
 --   * chat_messages : message_type에 APPOINTMENT(전달 약속 카드) 추가
+--   * donation_items: pickup_address_detail(상세 주소), latitude·longitude(물품 좌표) 추가 (#31)
+--   * item_categories: 기준 데이터 7개 (data.sql), 단위는 정해진 목록(ItemUnits)에서만 받음 (#31)
 -- =====================================================================
 
 
@@ -128,7 +130,10 @@ CREATE TABLE `donation_items` (
   `donor_id`           BIGINT      NOT NULL COMMENT '등록한 기부자',
   `category_id`        BIGINT      NOT NULL COMMENT '카테고리',
   `region_id`          BIGINT      NOT NULL COMMENT '물품 위치 (구 단위, 목록·상세에 공개)',
-  `pickup_address`     VARCHAR(255) NULL    COMMENT '물품 상세 위치 (물품 수정 화면, 비공개·채팅에서 협의)',
+  `pickup_address`     VARCHAR(255) NULL    COMMENT '물품 위치 (도로명 주소, 좌표 변환 대상. 기부자에게만 보이고 목록·상세에는 구 단위 지역만 공개)',
+  `pickup_address_detail` VARCHAR(100) NULL COMMENT '물품 상세 주소 (선택, 등록 3/3 화면. 동·호수·전달 메모)',
+  `latitude`           DECIMAL(10,7) NULL   COMMENT '물품 위치 위도 (주소 지오코딩, 거리순 추천용)',
+  `longitude`          DECIMAL(10,7) NULL   COMMENT '물품 위치 경도',
   `item_name`          VARCHAR(50) NOT NULL COMMENT '품목 (어린이 도서, 생수 ...)',
   `quantity`           INT         NOT NULL COMMENT '총 수량',
   `unit`               VARCHAR(10) NOT NULL COMMENT '단위 (개, 권, 장, 벌 ...)',
@@ -146,7 +151,7 @@ CREATE TABLE `donation_items` (
 CREATE TABLE `donation_item_images` (
   `image_id`         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '이미지 ID',
   `donation_item_id` BIGINT       NOT NULL COMMENT '기부 물품 ID',
-  `image_url`        VARCHAR(500) NOT NULL COMMENT 'S3 URL (최소 1장)',
+  `image_url`        VARCHAR(500) NOT NULL COMMENT 'S3 객체 key (물품당 1~5장. 응답에는 서명 URL로 준다)',
   `sort_order`       INT          NOT NULL DEFAULT 0 COMMENT '0 = 대표 이미지',
   `created_at`       DATETIME     NOT NULL COMMENT '등록 일시',
   PRIMARY KEY (`image_id`)
@@ -168,10 +173,10 @@ CREATE TABLE `needed_items` (
   `received_quantity`   INT           NOT NULL DEFAULT 0 COMMENT '수령 완료 수량',
   `desired_condition`   VARCHAR(10)   NOT NULL COMMENT '희망 최소 상태: HIGH | MID | LOW ("중 이상"처럼 이 등급 이상)',
   `description`         TEXT          NULL     COMMENT '필요한 이유 / 설명 (선택)',
-  `reference_image_url` VARCHAR(500)  NULL     COMMENT '참고 사진 S3 URL (선택, 1장)',
+  `reference_image_url` VARCHAR(500)  NULL     COMMENT '참고 사진 S3 객체 key (선택, 1장. 응답에는 서명 URL로 준다)',
   `receive_address`     VARCHAR(255)  NULL     COMMENT '수령 장소 상세 주소 (선택, 필요 나눔 수정 화면)',
-  `latitude`            DECIMAL(10,7) NULL     COMMENT '수령 장소 위도',
-  `longitude`           DECIMAL(10,7) NULL     COMMENT '수령 장소 경도',
+  `latitude`            DECIMAL(10,7) NULL     COMMENT '쓰지 않음 (거리는 기관 주소 좌표로 계산)',
+  `longitude`           DECIMAL(10,7) NULL     COMMENT '쓰지 않음 (거리는 기관 주소 좌표로 계산)',
   `status`              VARCHAR(20)   NOT NULL DEFAULT 'RECRUITING' COMMENT 'RECRUITING(모집중) | FULL(예약마감) | CLOSED(모집 종료)',
   `closed_at`           DATETIME      NULL     COMMENT '모집 종료 일시',
   `created_at`          DATETIME      NOT NULL COMMENT '등록 일시',

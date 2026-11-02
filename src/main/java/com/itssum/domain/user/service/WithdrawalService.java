@@ -16,8 +16,6 @@ import com.itssum.domain.user.repository.OrganizationRepository;
 import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import java.time.LocalDateTime;
-import java.util.EnumSet;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,13 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class WithdrawalService {
-
-    /**
-     * 끝난 매칭: 전달 완료·거절·거래 취소. 이 밖의 상태(응답 대기 중인 제안·요청, 거래중, 예약중)는 진행 중으로 본다.
-     * 진행 중 상태의 이름이 바뀌어도 규칙이 그대로 맞도록 끝난 상태로 판단한다.
-     */
-    private static final Set<MatchStatus> FINISHED_MATCH_STATUSES =
-            EnumSet.of(MatchStatus.COMPLETED, MatchStatus.REJECTED, MatchStatus.CANCELED);
 
     private final MemberReader memberReader;
     private final DonorRepository donorRepository;
@@ -55,7 +46,7 @@ public class WithdrawalService {
         if (user.getRole() == UserRole.DONOR) {
             Donor donor = donorRepository.findById(userId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-            if (matchRepository.existsByDonorIdAndStatusNotIn(userId, FINISHED_MATCH_STATUSES)) {
+            if (matchRepository.existsByDonorIdAndStatusNotIn(userId, MatchStatus.FINISHED)) {
                 throw new BusinessException(ErrorCode.USER_WITHDRAWAL_BLOCKED);
             }
             donationItemRepository.softDeleteAllByDonorId(userId, now);
@@ -63,7 +54,7 @@ public class WithdrawalService {
         } else {
             Organization organization = organizationRepository.findById(userId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-            if (matchRepository.existsByOrganizationIdAndStatusNotIn(userId, FINISHED_MATCH_STATUSES)) {
+            if (matchRepository.existsByOrganizationIdAndStatusNotIn(userId, MatchStatus.FINISHED)) {
                 throw new BusinessException(ErrorCode.USER_WITHDRAWAL_BLOCKED);
             }
             neededItemRepository.softDeleteAllByOrganizationId(userId, now);

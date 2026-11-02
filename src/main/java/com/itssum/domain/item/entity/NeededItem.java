@@ -86,16 +86,16 @@ public class NeededItem extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT", comment = "필요한 이유 / 설명 (선택)")
     private String description;
 
-    @Column(length = 500, comment = "참고 사진 S3 URL (선택, 1장)")
+    @Column(length = 500, comment = "참고 사진 S3 객체 key (선택, 1장. 응답에는 서명 URL로 준다)")
     private String referenceImageUrl;
 
     @Column(length = 255, comment = "수령 장소 상세 주소 (선택, 필요 나눔 수정 화면)")
     private String receiveAddress;
 
-    @Column(precision = 10, scale = 7, comment = "수령 장소 위도")
+    @Column(precision = 10, scale = 7, comment = "쓰지 않음 (거리는 기관 주소 좌표로 계산)")
     private BigDecimal latitude;
 
-    @Column(precision = 10, scale = 7, comment = "수령 장소 경도")
+    @Column(precision = 10, scale = 7, comment = "쓰지 않음 (거리는 기관 주소 좌표로 계산)")
     private BigDecimal longitude;
 
     @Enumerated(EnumType.STRING)
@@ -127,6 +127,27 @@ public class NeededItem extends BaseTimeEntity {
         this.receiveAddress = receiveAddress;
         this.latitude = latitude;
         this.longitude = longitude;
+    }
+
+    public void changeDescription(String description) {
+        this.description = description;
+    }
+
+    public void changeReceiveAddress(String receiveAddress) {
+        this.receiveAddress = receiveAddress;
+    }
+
+    /** 참고 사진 S3 key 를 바꾼다. null 이면 참고 사진을 지운다. */
+    public void changeReferenceImage(String imageKey) {
+        this.referenceImageUrl = imageKey;
+    }
+
+    public boolean isOwnedBy(Long organizationId) {
+        return organization.getId().equals(organizationId);
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 
     public void delete() {
