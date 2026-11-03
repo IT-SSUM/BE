@@ -30,6 +30,12 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Query("select m from Match m where m.donor.id = :userId or m.organization.id = :userId order by m.createdAt desc, m.id desc")
     List<Match> findAllForUser(@Param("userId") Long userId);
 
+    /** 필요 물품 모집 종료용: 그 물품의 주어진 상태(응답 대기) 매칭을 잠그고 읽는다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select m from Match m where m.neededItem.id = :neededItemId and m.status = :status order by m.id")
+    List<Match> findByNeededItemIdAndStatusForUpdate(@Param("neededItemId") Long neededItemId,
+                                                     @Param("status") MatchStatus status);
+
     /** 회원 탈퇴 검사용: 주어진 상태(끝난 상태)가 아닌 매칭이 남아 있는지 */
     boolean existsByDonorIdAndStatusNotIn(Long donorId, Collection<MatchStatus> statuses);
 

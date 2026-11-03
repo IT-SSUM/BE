@@ -3,10 +3,18 @@ package com.itssum.domain.match.controller;
 import com.itssum.domain.match.dto.request.CreateMatchRequest;
 import com.itssum.domain.match.dto.request.ConfirmAppointmentRequest;
 import com.itssum.domain.match.dto.request.MatchReasonRequest;
+import com.itssum.domain.match.dto.request.UpdateMatchQuantityRequest;
 import com.itssum.domain.match.dto.response.MatchAcceptedResponse;
+import com.itssum.domain.match.dto.response.MatchAppointmentResponse;
+import com.itssum.domain.match.dto.response.MatchCanceledResponse;
+import com.itssum.domain.match.dto.response.MatchCompletedResponse;
 import com.itssum.domain.match.dto.response.MatchCreatedResponse;
+import com.itssum.domain.match.dto.response.MatchListResponse;
+import com.itssum.domain.match.dto.response.MatchQuantityResponse;
 import com.itssum.domain.match.dto.response.MatchRejectedResponse;
+import com.itssum.domain.match.dto.response.MatchReservedResponse;
 import com.itssum.domain.match.dto.response.MatchResponse;
+import com.itssum.domain.match.dto.response.MatchWithdrawnResponse;
 import com.itssum.domain.match.service.MatchService;
 import com.itssum.domain.match.service.MatchUserResolver;
 import com.itssum.global.common.ApiResponse;
@@ -44,7 +52,7 @@ public class MatchController {
 
     @Operation(summary = "매칭 목록 조회", description = "보내거나 받은 제안·요청과 개별 거래를 최신순으로 조회합니다.")
     @GetMapping
-    public ApiResponse<List<MatchResponse>> list(Principal principal) {
+    public ApiResponse<List<MatchListResponse>> list(Principal principal) {
         return ApiResponse.ok(SuccessCode.MATCH_LIST_FOUND,
                 matchService.list(userResolver.requireUser(principal)));
     }
@@ -71,23 +79,38 @@ public class MatchController {
                 matchService.reject(matchId, userResolver.requireUser(principal)));
     }
 
+    @Operation(summary = "기부 제안·요청 철회", description = "상대방이 응답하기 전, 제안·요청을 보낸 사람만 철회할 수 있습니다.")
+    @PatchMapping("/{matchId}/withdraw")
+    public ApiResponse<MatchWithdrawnResponse> withdraw(@PathVariable Long matchId, Principal principal) {
+        return ApiResponse.ok(SuccessCode.MATCH_WITHDRAWN,
+                matchService.withdraw(matchId, userResolver.requireUser(principal)));
+    }
+
+    @Operation(summary = "거래중 합의 수량 변경", description = "기부자만 거래중인 건의 합의 수량을 변경합니다. 양쪽 물품의 신청 가능 수량 이하여야 하며, 변경만으로 수량을 예약하지 않습니다.")
+    @PatchMapping("/{matchId}/quantity")
+    public ApiResponse<MatchQuantityResponse> updateQuantity(@PathVariable Long matchId,
+            @Valid @RequestBody UpdateMatchQuantityRequest request, Principal principal) {
+        return ApiResponse.ok(SuccessCode.MATCH_QUANTITY_UPDATED,
+                matchService.updateQuantity(matchId, userResolver.requireUser(principal), request));
+    }
+
     @Operation(summary = "거래 예약", description = "상대 수락 후 거래중인 건을 기부자만 예약중으로 바꾸고 양쪽 물품의 예약 수량을 확보합니다.")
     @PatchMapping("/{matchId}/reserve")
-    public ApiResponse<MatchResponse> reserve(@PathVariable Long matchId, Principal principal) {
+    public ApiResponse<MatchReservedResponse> reserve(@PathVariable Long matchId, Principal principal) {
         return ApiResponse.ok(SuccessCode.MATCH_RESERVED,
                 matchService.reserve(matchId, userResolver.requireUser(principal)));
     }
 
     @Operation(summary = "거래 완료", description = "기관이 실제 수령을 확인한 뒤 예약 수량을 완료 수량으로 옮깁니다.")
     @PatchMapping("/{matchId}/complete")
-    public ApiResponse<MatchResponse> complete(@PathVariable Long matchId, Principal principal) {
+    public ApiResponse<MatchCompletedResponse> complete(@PathVariable Long matchId, Principal principal) {
         return ApiResponse.ok(SuccessCode.MATCH_COMPLETED,
                 matchService.complete(matchId, userResolver.requireUser(principal)));
     }
 
     @Operation(summary = "거래 취소", description = "양측 모두 거래중·예약중 거래를 취소할 수 있습니다. 예약중이었다면 수량을 반환합니다.")
     @PatchMapping("/{matchId}/cancel")
-    public ApiResponse<MatchResponse> cancel(@PathVariable Long matchId,
+    public ApiResponse<MatchCanceledResponse> cancel(@PathVariable Long matchId,
                                              @Valid @RequestBody(required = false) MatchReasonRequest request,
                                              Principal principal) {
         return ApiResponse.ok(SuccessCode.MATCH_CANCELED, matchService.cancel(matchId, userResolver.requireUser(principal),
@@ -96,7 +119,7 @@ public class MatchController {
 
     @Operation(summary = "전달 약속 확정·변경", description = "예약중 거래의 당사자 누구나 협의한 전달 방법·일정·장소를 저장하거나 변경할 수 있습니다. 저장할 때마다 채팅에 약속 카드가 생성됩니다.")
     @PatchMapping("/{matchId}/appointment")
-    public ApiResponse<MatchResponse> confirmAppointment(@PathVariable Long matchId,
+    public ApiResponse<MatchAppointmentResponse> confirmAppointment(@PathVariable Long matchId,
             @Valid @RequestBody ConfirmAppointmentRequest request, Principal principal) {
         return ApiResponse.ok(SuccessCode.MATCH_APPOINTMENT_SAVED,
                 matchService.confirmAppointment(matchId, userResolver.requireUser(principal), request));

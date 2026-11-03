@@ -15,13 +15,12 @@ public record NotificationResponse(
         NotificationTargetType targetType,
         Long targetId,
         boolean isRead,
-        LocalDateTime readAt,
         LocalDateTime createdAt
 ) {
     public static NotificationResponse from(Notification notification) {
         return new NotificationResponse(notification.getId(), notification.getType(),
                 notification.getTitle(), notification.getContent(), notification.getTargetType(),
-                notification.getTargetId(), notification.isRead(), notification.getReadAt(),
+                notification.getTargetId(), notification.isRead(),
                 notification.getCreatedAt());
     }
 }

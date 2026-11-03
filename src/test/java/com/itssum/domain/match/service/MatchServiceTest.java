@@ -24,6 +24,7 @@ import com.itssum.domain.item.repository.DonationItemRepository;
 import com.itssum.domain.item.repository.NeededItemRepository;
 import com.itssum.domain.match.dto.request.ConfirmAppointmentRequest;
 import com.itssum.domain.match.dto.request.CreateMatchRequest;
+import com.itssum.domain.match.dto.request.UpdateMatchQuantityRequest;
 import com.itssum.domain.match.entity.DeliveryMethod;
 import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.MatchStatus;
@@ -39,6 +40,7 @@ import com.itssum.global.exception.BusinessException;
 import com.itssum.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,6 +114,23 @@ class MatchServiceTest {
     }
 
     @Test
+    void listContainsFieldsForMatchCardsWithoutDetailOnlyFields() {
+        when(matches.findAllForUser(1L)).thenReturn(List.of(match));
+
+        var response = service.list(donorUser).getFirst();
+
+        assertEquals(7L, response.matchId());
+        assertEquals(RequesterType.ORGANIZATION, response.requestedBy());
+        assertEquals(MatchStatus.PENDING, response.status());
+        assertEquals("도서", response.donationItemName());
+        assertEquals("기관 A", response.organizationName());
+        assertEquals(2, response.quantity());
+        assertEquals("권", response.unit());
+        assertEquals(3L, response.itemCategoryId());
+        assertEquals("경기 부천시", response.neededItemRegion());
+    }
+
+    @Test
     void onlyRecipientCanAcceptAndAcceptanceOpensChatWithoutReserving() {
         assertEquals(ErrorCode.MATCH_NOT_RECIPIENT,
                 assertThrows(BusinessException.class, () -> service.accept(7L, organizationUser)).getErrorCode());
@@ -170,6 +189,45 @@ class MatchServiceTest {
     }
 
     @Test
+    void requesterCanWithdrawPendingRequestWithoutReservingOrOpeningChat() {
+        assertEquals(ErrorCode.MATCH_NOT_REQUESTER,
+                assertThrows(BusinessException.class, () -> service.withdraw(7L, donorUser)).getErrorCode());
+
+        var response = service.withdraw(7L, organizationUser);
+
+        assertEquals(MatchStatus.CANCELED, response.status());
+        assertNotNull(response.canceledAt());
+        assertEquals(0, donation.getReservedQuantity());
+        assertEquals(0, needed.getReservedQuantity());
+        verify(rooms, never()).createForMatch(any(Match.class));
+        assertEquals(ErrorCode.MATCH_INVALID_STATUS,
+                assertThrows(BusinessException.class, () -> service.accept(7L, donorUser)).getErrorCode());
+        assertEquals(ErrorCode.MATCH_INVALID_STATUS,
+                assertThrows(BusinessException.class, () -> service.withdraw(7L, organizationUser)).getErrorCode());
+    }
+
+    @Test
+    void donorCanWithdrawPendingProposalButNotAfterAcceptance() {
+        Match proposal = Match.builder().donationItem(donation).neededItem(needed)
+                .donor(match.getDonor()).organization(match.getOrganization())
+                .requestedBy(RequesterType.DONOR).quantity(2).build();
+        ReflectionTestUtils.setField(proposal, "id", 8L);
+        when(matches.findByIdForUpdate(8L)).thenReturn(Optional.of(proposal));
+
+        assertEquals(MatchStatus.CANCELED, service.withdraw(8L, donorUser).status());
+
+        Match accepted = Match.builder().donationItem(donation).neededItem(needed)
+                .donor(match.getDonor()).organization(match.getOrganization())
+                .requestedBy(RequesterType.DONOR).quantity(2).build();
+        ReflectionTestUtils.setField(accepted, "id", 9L);
+        accepted.accept();
+        when(matches.findByIdForUpdate(9L)).thenReturn(Optional.of(accepted));
+
+        assertEquals(ErrorCode.MATCH_INVALID_STATUS,
+                assertThrows(BusinessException.class, () -> service.withdraw(9L, donorUser)).getErrorCode());
+    }
+
+    @Test
     void onlyDonorReservesAndCanceledReservationRestoresBothQuantities() {
         service.accept(7L, donorUser);
         BusinessException forbidden = assertThrows(BusinessException.class, () -> service.reserve(7L, organizationUser));
@@ -189,6 +247,93 @@ class MatchServiceTest {
         assertEquals(0, donation.getReservedQuantity());
         assertEquals(0, needed.getReservedQuantity());
         assertEquals(NeededItemStatus.RECRUITING, needed.getStatus());
+    }
+
+    @Test
+    void donorChangesTradingQuantityWithoutReservingAndReservationUsesNewQuantity() {
+        when(matches.findById(7L)).thenReturn(Optional.of(match));
+        when(matches.findAllForUser(1L)).thenReturn(List.of(match));
+        service.accept(7L, donorUser);
+
+        var response = service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(1));
+
+        assertEquals(7L, response.matchId());
+        assertEquals(MatchStatus.TRADING, response.status());
+        assertEquals(1, response.quantity());
+        assertEquals(2, response.initialQuantity());
+        assertEquals(0, donation.getReservedQuantity());
+        assertEquals(0, needed.getReservedQuantity());
+        var detail = service.detail(7L, donorUser);
+        assertEquals(1, detail.quantity());
+        assertEquals(2, detail.initialQuantity());
+        assertEquals(1, service.list(donorUser).getFirst().quantity());
+
+        service.reserve(7L, donorUser);
+        assertEquals(1, donation.getReservedQuantity());
+        assertEquals(1, needed.getReservedQuantity());
+        assertEquals(ErrorCode.MATCH_INVALID_STATUS, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(2))).getErrorCode());
+    }
+
+    @Test
+    void quantityChangeRequiresDonorTradingStateAndAvailableQuantity() {
+        assertEquals(ErrorCode.MATCH_INVALID_STATUS, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(1))).getErrorCode());
+        service.accept(7L, donorUser);
+
+        assertEquals(ErrorCode.MATCH_QUANTITY_NOT_DONOR, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, organizationUser, new UpdateMatchQuantityRequest(1))).getErrorCode());
+        assertEquals(ErrorCode.MATCH_INSUFFICIENT_QUANTITY, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(3))).getErrorCode());
+        assertEquals(2, match.getQuantity());
+        assertEquals(0, donation.getReservedQuantity());
+        assertEquals(0, needed.getReservedQuantity());
+
+        ReflectionTestUtils.setField(needed, "requiredQuantity", 8);
+        assertEquals(5, donation.availableQuantity());
+        assertEquals(8, needed.availableQuantity());
+        assertEquals(ErrorCode.MATCH_INSUFFICIENT_QUANTITY, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(6))).getErrorCode());
+        assertEquals(2, match.getQuantity());
+        assertEquals(0, donation.getReservedQuantity());
+        assertEquals(0, needed.getReservedQuantity());
+    }
+
+    @Test
+    void tradingReservesAfterManualClose() {
+        ReflectionTestUtils.setField(needed, "requiredQuantity", 5);
+        needed.close();
+        match.accept();
+
+        service.reserve(7L, donorUser);
+
+        assertEquals(MatchStatus.RESERVED, match.getStatus());
+        assertEquals(2, needed.getReservedQuantity());
+        assertEquals(NeededItemStatus.CLOSED, needed.getStatus());
+    }
+
+    @Test
+    void tradingChangesQuantityAfterManualClose() {
+        ReflectionTestUtils.setField(needed, "requiredQuantity", 5);
+        needed.close();
+        match.accept();
+
+        service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(3));
+
+        assertEquals(3, match.getQuantity());
+    }
+
+    @Test
+    void tradingCannotReserveWhenNeedAlreadyFullyReceived() {
+        ReflectionTestUtils.setField(needed, "receivedQuantity", 2);
+        ReflectionTestUtils.setField(needed, "status", NeededItemStatus.CLOSED);
+        match.accept();
+
+        BusinessException e = assertThrows(BusinessException.class, () -> service.reserve(7L, donorUser));
+
+        assertEquals(ErrorCode.MATCH_INSUFFICIENT_QUANTITY, e.getErrorCode());
+        assertEquals(0, needed.getReservedQuantity());
+        assertEquals(0, donation.getReservedQuantity());
     }
 
     @Test
@@ -221,11 +366,13 @@ class MatchServiceTest {
         var response = service.confirmAppointment(7L, organizationUser, request);
 
         assertEquals("기관 입구", response.deliveryPlace());
-        assertEquals("최윤서", response.donorName());
-        assertEquals("기관 A", response.organizationName());
-        assertEquals(33L, response.chatRoomId());
-        assertEquals("경기 부천시", response.donationItemRegion());
-        assertEquals(3, response.donationItemAvailableQuantity());
+        when(matches.findById(7L)).thenReturn(Optional.of(match));
+        var detail = service.detail(7L, organizationUser);
+        assertEquals("최윤서", detail.donorName());
+        assertEquals("기관 A", detail.organizationName());
+        assertEquals(33L, detail.chatRoomId());
+        assertEquals("경기 부천시", detail.donationItemRegion());
+        assertEquals(3, detail.donationItemAvailableQuantity());
         verify(rooms).createAppointmentCard(match, organizationUser);
         match.markReceiptReminderSent(LocalDateTime.now());
         assertNotNull(match.getReceiptReminderSentAt());

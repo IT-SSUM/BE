@@ -48,8 +48,13 @@ public enum SuccessCode {
     ITEM_NEEDED_UPDATED(HttpStatus.OK, "ITEM_200_11", "필요 물품을 수정했습니다."),
     ITEM_NEEDED_DELETED(HttpStatus.OK, "ITEM_200_12", "필요 물품을 삭제했습니다."),
     ITEM_MY_NEEDED_FOUND(HttpStatus.OK, "ITEM_200_13", "우리 기관 필요 물품 목록을 조회했습니다."),
+    ITEM_NEEDED_CLOSED(HttpStatus.OK, "ITEM_200_14", "필요 물품 모집을 종료했습니다."),
     ITEM_DONATION_CREATED(HttpStatus.CREATED, "ITEM_201", "기부 물품을 등록했습니다."),
     ITEM_NEEDED_CREATED(HttpStatus.CREATED, "ITEM_201_1", "필요 물품을 등록했습니다."),
+
+    // ---------- 추천 ----------
+    RECOMMENDATION_CREATED(HttpStatus.OK, "RECOMMENDATION_200", "추천 기관을 계산했습니다."),
+    RECOMMENDATION_FOUND(HttpStatus.OK, "RECOMMENDATION_200_1", "추천 기관을 조회했습니다."),
 
     // ---------- 매칭 ----------
     MATCH_LIST_FOUND(HttpStatus.OK, "MATCH_200", "매칭 목록을 조회했습니다."),
@@ -60,6 +65,8 @@ public enum SuccessCode {
     MATCH_APPOINTMENT_SAVED(HttpStatus.OK, "MATCH_200_5", "전달 약속을 저장했습니다."),
     MATCH_ACCEPTED(HttpStatus.OK, "MATCH_200_6", "기부 제안·요청을 수락했습니다."),
     MATCH_REJECTED(HttpStatus.OK, "MATCH_200_7", "기부 제안·요청을 거절했습니다."),
+    MATCH_WITHDRAWN(HttpStatus.OK, "MATCH_200_8", "기부 제안·요청을 철회했습니다."),
+    MATCH_QUANTITY_UPDATED(HttpStatus.OK, "MATCH_200_9", "거래중 합의 수량을 변경했습니다."),
     MATCH_CREATED(HttpStatus.CREATED, "MATCH_201", "기부 제안·요청을 생성했습니다."),
 
     // ---------- 채팅 ----------

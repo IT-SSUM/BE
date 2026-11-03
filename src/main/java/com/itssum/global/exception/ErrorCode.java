@@ -54,10 +54,15 @@ public enum ErrorCode {
             "진행 중인 나눔이 있는 물품은 삭제할 수 없어요. 응답 대기 중인 제안·요청과 거래중·예약중인 거래를 먼저 마무리해 주세요."),
     ITEM_IMAGE_STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "ITEM_503", "이미지 저장소가 준비되지 않았습니다."),
 
+    // ---------- 추천 ----------
+    RECOMMENDATION_NOT_OWNER(HttpStatus.FORBIDDEN, "RECOMMENDATION_403", "내가 등록한 물품의 추천만 볼 수 있습니다."),
+
     // ---------- 매칭 ----------
     MATCH_INVALID_ITEM(HttpStatus.BAD_REQUEST, "MATCH_400", "매칭할 수 없는 물품입니다."),
     MATCH_NOT_PARTICIPANT(HttpStatus.FORBIDDEN, "MATCH_403", "매칭 당사자만 접근할 수 있습니다."),
     MATCH_NOT_RECIPIENT(HttpStatus.FORBIDDEN, "MATCH_403_1", "받은 제안·요청만 응답할 수 있습니다."),
+    MATCH_NOT_REQUESTER(HttpStatus.FORBIDDEN, "MATCH_403_2", "보낸 제안·요청만 철회할 수 있습니다."),
+    MATCH_QUANTITY_NOT_DONOR(HttpStatus.FORBIDDEN, "MATCH_403_3", "합의 수량은 기부자만 변경할 수 있습니다."),
     MATCH_NOT_FOUND(HttpStatus.NOT_FOUND, "MATCH_404", "매칭을 찾을 수 없습니다."),
     MATCH_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "MATCH_409", "매칭 가능한 수량이 부족합니다."),
     MATCH_INVALID_STATUS(HttpStatus.CONFLICT, "MATCH_409_1", "현재 상태에서는 요청을 처리할 수 없습니다."),
