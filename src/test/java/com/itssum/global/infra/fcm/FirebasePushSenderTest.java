@@ -20,7 +20,7 @@ class FirebasePushSenderTest {
     private final FirebasePushSender sender = new FirebasePushSender(messaging);
     private final NotificationResponse notification = new NotificationResponse(
             1L, NotificationType.CHAT, "새 채팅 메시지", "새 메시지가 도착했어요.",
-            NotificationTargetType.CHAT_ROOM, 2L, false, null, null);
+            NotificationTargetType.CHAT_ROOM, 2L, false, null);
 
     @Test
     void invalidArgumentRemovesRegistration() throws Exception {

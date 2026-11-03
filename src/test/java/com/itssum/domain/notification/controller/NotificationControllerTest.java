@@ -62,7 +62,7 @@ class NotificationControllerTest {
         when(users.findById(7L)).thenReturn(Optional.of(user));
         when(notifications.list(7L, null, 30)).thenReturn(new NotificationPageResponse(List.of(
                 new NotificationResponse(9L, NotificationType.MATCH_ACCEPTED, "기부 제안·요청 수락",
-                        "도서 3권", NotificationTargetType.MATCH, 12L, false, null,
+                        "도서 3권", NotificationTargetType.MATCH, 12L, false,
                         LocalDateTime.of(2026, 11, 1, 18, 0))), null, false));
         when(notifications.unreadCount(7L)).thenReturn(new UnreadNotificationCountResponse(2));
         String authorization = "Bearer " + tokens.issue(7L, UserRole.DONOR);
@@ -72,7 +72,8 @@ class NotificationControllerTest {
                 .andExpect(jsonPath("$.code").value("NOTIFICATION_200"))
                 .andExpect(jsonPath("$.data.notifications").isArray())
                 .andExpect(jsonPath("$.data.notifications[0].targetId").value(12))
-                .andExpect(jsonPath("$.data.notifications[0].isRead").value(false));
+                .andExpect(jsonPath("$.data.notifications[0].isRead").value(false))
+                .andExpect(jsonPath("$.data.notifications[0].readAt").doesNotExist());
         mockMvc.perform(get("/api/notifications/unread-count").header(HttpHeaders.AUTHORIZATION, authorization))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.unreadCount").value(2));

@@ -12,9 +12,15 @@ import com.itssum.domain.item.repository.NeededItemRepository;
 import com.itssum.domain.match.dto.request.ConfirmAppointmentRequest;
 import com.itssum.domain.match.dto.request.CreateMatchRequest;
 import com.itssum.domain.match.dto.response.MatchAcceptedResponse;
+import com.itssum.domain.match.dto.response.MatchAppointmentResponse;
+import com.itssum.domain.match.dto.response.MatchCanceledResponse;
+import com.itssum.domain.match.dto.response.MatchCompletedResponse;
 import com.itssum.domain.match.dto.response.MatchCreatedResponse;
+import com.itssum.domain.match.dto.response.MatchListResponse;
 import com.itssum.domain.match.dto.response.MatchRejectedResponse;
+import com.itssum.domain.match.dto.response.MatchReservedResponse;
 import com.itssum.domain.match.dto.response.MatchResponse;
+import com.itssum.domain.match.dto.response.MatchWithdrawnResponse;
 import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.MatchStatus;
 import com.itssum.domain.match.entity.RequesterType;
@@ -28,8 +34,6 @@ import com.itssum.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,16 +109,22 @@ public class MatchService {
         return MatchRejectedResponse.from(match);
     }
 
-    @Transactional(readOnly = true)
-    public List<MatchResponse> list(User actor) {
-        List<Match> matches = matchRepository.findAllForUser(actor.getId());
-        if (matches.isEmpty()) {
-            return List.of();
+    @Transactional
+    public MatchWithdrawnResponse withdraw(Long matchId, User actor) {
+        Match match = findForUpdate(matchId, actor);
+        Long requesterId = match.getRequestedBy() == RequesterType.DONOR
+                ? match.getDonor().getId() : match.getOrganization().getId();
+        if (!requesterId.equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.MATCH_NOT_REQUESTER);
         }
-        Map<Long, Long> roomIds = chatRoomRepository.findByMatch_IdIn(
-                matches.stream().map(Match::getId).toList()).stream()
-                .collect(Collectors.toMap(room -> room.getMatch().getId(), ChatRoom::getId));
-        return matches.stream().map(match -> MatchResponse.from(match, roomIds.get(match.getId()))).toList();
+        requireStatus(match, MatchStatus.PENDING);
+        match.cancel(actor, null);
+        return MatchWithdrawnResponse.from(match);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MatchListResponse> list(User actor) {
+        return matchRepository.findAllForUser(actor.getId()).stream().map(MatchListResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
@@ -126,7 +136,7 @@ public class MatchService {
     }
 
     @Transactional
-    public MatchResponse reserve(Long matchId, User actor) {
+    public MatchReservedResponse reserve(Long matchId, User actor) {
         Match match = findForUpdate(matchId, actor);
         if (!match.getDonor().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.MATCH_NOT_PARTICIPANT);
@@ -145,11 +155,11 @@ public class MatchService {
         needed.reserve(match.getQuantity());
         match.reserve();
         notificationService.createForMatch(match, actor, NotificationType.MATCH_RESERVED);
-        return responseWithRoom(match);
+        return MatchReservedResponse.from(match);
     }
 
     @Transactional
-    public MatchResponse complete(Long matchId, User actor) {
+    public MatchCompletedResponse complete(Long matchId, User actor) {
         Match match = findForUpdate(matchId, actor);
         if (!match.getOrganization().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.MATCH_NOT_PARTICIPANT);
@@ -159,11 +169,11 @@ public class MatchService {
         lockNeeded(match).complete(match.getQuantity());
         match.complete();
         notificationService.createForMatch(match, actor, NotificationType.MATCH_COMPLETED);
-        return responseWithRoom(match);
+        return MatchCompletedResponse.from(match);
     }
 
     @Transactional
-    public MatchResponse cancel(Long matchId, User actor, String reason) {
+    public MatchCanceledResponse cancel(Long matchId, User actor, String reason) {
         Match match = findForUpdate(matchId, actor);
         if (match.getStatus() != MatchStatus.TRADING && match.getStatus() != MatchStatus.RESERVED) {
             throw new BusinessException(ErrorCode.MATCH_INVALID_STATUS);
@@ -174,11 +184,11 @@ public class MatchService {
         }
         match.cancel(actor, reason);
         notificationService.createForMatch(match, actor, NotificationType.MATCH_CANCELED);
-        return responseWithRoom(match);
+        return MatchCanceledResponse.from(match);
     }
 
     @Transactional
-    public MatchResponse confirmAppointment(Long matchId, User actor, ConfirmAppointmentRequest request) {
+    public MatchAppointmentResponse confirmAppointment(Long matchId, User actor, ConfirmAppointmentRequest request) {
         Match match = findForUpdate(matchId, actor);
         requireStatus(match, MatchStatus.RESERVED);
         LocalDateTime scheduledAt = LocalDateTime.ofInstant(request.scheduledAt().toInstant(),
@@ -187,7 +197,7 @@ public class MatchService {
                 request.deliveryPlace().trim(), request.receiverName());
         chatRoomService.createAppointmentCard(match, actor);
         notificationService.createForMatch(match, actor, NotificationType.MATCH_SCHEDULED);
-        return responseWithRoom(match);
+        return MatchAppointmentResponse.from(match);
     }
 
     private MatchResponse responseWithRoom(Match match) {
