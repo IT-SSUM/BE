@@ -87,7 +87,7 @@ public class Match extends BaseTimeEntity {
     @ColumnDefault("'PENDING'")
     @Column(nullable = false, length = 20,
             comment = "PENDING(응답 대기) | TRADING(거래중: 수량 미확보) | RESERVED(예약중: 임시 수량 확보)"
-                    + " | COMPLETED(전달 완료: 기관 수령 확인) | REJECTED | CANCELED")
+                    + " | COMPLETED(전달 완료: 기관 수령 확인) | REJECTED | CANCELED(철회·취소)")
     private MatchStatus status = MatchStatus.PENDING;
 
     @Column(secondPrecision = 0, comment = "수락·거절 일시")
