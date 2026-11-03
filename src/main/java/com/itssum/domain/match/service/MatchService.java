@@ -146,8 +146,9 @@ public class MatchService {
         requireStatus(match, MatchStatus.TRADING);
         DonationItem donation = lockDonation(match);
         NeededItem needed = lockNeeded(match);
-        if (donation.getDeletedAt() != null || needed.getDeletedAt() != null
-                || needed.getStatus() == NeededItemStatus.CLOSED) {
+        // 모집이 종료된(CLOSED) 필요 물품이어도 이미 수락된 거래는 예약할 수 있다 (#44). 받은 수량을 다 채워 종료된
+        // 물품은 신청 가능 수량이 남지 않아 아래 수량 검사에서 막힌다.
+        if (donation.getDeletedAt() != null || needed.getDeletedAt() != null) {
             throw new BusinessException(ErrorCode.MATCH_INVALID_ITEM);
         }
         if (match.getQuantity() > donation.availableQuantity() || match.getQuantity() > needed.availableQuantity()) {
@@ -169,8 +170,8 @@ public class MatchService {
         requireStatus(match, MatchStatus.TRADING);
         DonationItem donation = lockDonation(match);
         NeededItem needed = lockNeeded(match);
-        if (donation.getDeletedAt() != null || needed.getDeletedAt() != null
-                || needed.getStatus() == NeededItemStatus.CLOSED) {
+        // 모집이 종료된 필요 물품이어도 거래중 합의 수량은 바꿀 수 있다 (#44). 수량 검사는 그대로 한다.
+        if (donation.getDeletedAt() != null || needed.getDeletedAt() != null) {
             throw new BusinessException(ErrorCode.MATCH_INVALID_ITEM);
         }
         if (request.quantity() > donation.availableQuantity() || request.quantity() > needed.availableQuantity()) {

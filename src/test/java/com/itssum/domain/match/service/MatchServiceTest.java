@@ -300,6 +300,43 @@ class MatchServiceTest {
     }
 
     @Test
+    void tradingReservesAfterManualClose() {
+        ReflectionTestUtils.setField(needed, "requiredQuantity", 5);
+        needed.close();
+        match.accept();
+
+        service.reserve(7L, donorUser);
+
+        assertEquals(MatchStatus.RESERVED, match.getStatus());
+        assertEquals(2, needed.getReservedQuantity());
+        assertEquals(NeededItemStatus.CLOSED, needed.getStatus());
+    }
+
+    @Test
+    void tradingChangesQuantityAfterManualClose() {
+        ReflectionTestUtils.setField(needed, "requiredQuantity", 5);
+        needed.close();
+        match.accept();
+
+        service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(3));
+
+        assertEquals(3, match.getQuantity());
+    }
+
+    @Test
+    void tradingCannotReserveWhenNeedAlreadyFullyReceived() {
+        ReflectionTestUtils.setField(needed, "receivedQuantity", 2);
+        ReflectionTestUtils.setField(needed, "status", NeededItemStatus.CLOSED);
+        match.accept();
+
+        BusinessException e = assertThrows(BusinessException.class, () -> service.reserve(7L, donorUser));
+
+        assertEquals(ErrorCode.MATCH_INSUFFICIENT_QUANTITY, e.getErrorCode());
+        assertEquals(0, needed.getReservedQuantity());
+        assertEquals(0, donation.getReservedQuantity());
+    }
+
+    @Test
     void organizationReceiptMovesReservedQuantityToCompletedAndClosesNeed() {
         service.accept(7L, donorUser);
         service.reserve(7L, donorUser);
