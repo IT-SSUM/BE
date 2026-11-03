@@ -123,8 +123,10 @@ class RecommendationIntegrationTest {
         neededA = needed(orgA, CATEGORY_ID, UNIT, ConditionGrade.MID, 20);
         needed(orgB, CATEGORY_ID, UNIT, ConditionGrade.MID, 25);
         needed(orgC, CATEGORY_ID, UNIT, ConditionGrade.MID, 30);
+        // A 와는 끝난(거절된) 매칭만 있다 → A 는 그대로 후보다
+        match(neededA, orgA, RequesterType.DONOR, "REJECTED");
 
-        // 기관 X: 조건이 하나씩 어긋난 필요 물품 다섯 개 → X 는 추천되면 안 된다
+        // 기관 X: 조건이 하나씩 어긋난 필요 물품 여섯 개 → X 는 추천되면 안 된다
         Long orgX = organization("X", "37.5000000");
         needed(orgX, CATEGORY_ID, UNIT, ConditionGrade.HIGH, 20);
         needed(orgX, CATEGORY_ID, "개", ConditionGrade.MID, 20);
@@ -133,6 +135,8 @@ class RecommendationIntegrationTest {
         jdbcTemplate.update("update needed_items set status = 'CLOSED' where needed_item_id = ?", closed);
         Long deleted = needed(orgX, CATEGORY_ID, UNIT, ConditionGrade.MID, 20);
         jdbcTemplate.update("update needed_items set deleted_at = now() where needed_item_id = ?", deleted);
+        Long full = needed(orgX, CATEGORY_ID, UNIT, ConditionGrade.MID, 20);
+        jdbcTemplate.update("update needed_items set status = 'FULL' where needed_item_id = ?", full);
 
         // 기관 F: 휴·폐업 감지
         Long orgF = organization("F", "37.5000000");
@@ -142,7 +146,13 @@ class RecommendationIntegrationTest {
         // 기관 G: 기관이 먼저 보낸 기부 요청이 응답 대기 중
         Long orgG = organization("G", "37.5000000");
         Long neededG = needed(orgG, CATEGORY_ID, UNIT, ConditionGrade.MID, 20);
-        pendingMatch(neededG, orgG, RequesterType.ORGANIZATION);
+        match(neededG, orgG, RequesterType.ORGANIZATION, "PENDING");
+
+        // 기관 H·I: 거래중·예약중인 거래가 있다
+        Long orgH = organization("H", "37.5000000");
+        match(needed(orgH, CATEGORY_ID, UNIT, ConditionGrade.MID, 20), orgH, RequesterType.DONOR, "TRADING");
+        Long orgI = organization("I", "37.5000000");
+        match(needed(orgI, CATEGORY_ID, UNIT, ConditionGrade.MID, 20), orgI, RequesterType.DONOR, "RESERVED");
     }
 
     @AfterEach
@@ -193,7 +203,7 @@ class RecommendationIntegrationTest {
         assertEquals(List.of(orgA, orgB), organizationIds(afterSuspend));
 
         // 4. A 에 기부 제안이 응답 대기 중 → 조회에서 빠진다
-        pendingMatch(neededA, orgA, RequesterType.DONOR);
+        match(neededA, orgA, RequesterType.DONOR, "PENDING");
         ResultActions afterProposal = perform(get(path), donorId, UserRole.DONOR)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].rank").value(1));
@@ -251,13 +261,15 @@ class RecommendationIntegrationTest {
                 .requiredQuantity(quantity).unit(unit).desiredCondition(desired).build()).getId());
     }
 
-    private void pendingMatch(Long neededItemId, Long organizationId, RequesterType requestedBy) {
-        transactionTemplate.executeWithoutResult(status -> matchRepository.save(Match.builder()
+    /** 이 기부 물품과 필요 물품 사이 매칭을 만들고 상태를 바꾼다 (상태 전이 규칙은 매칭 쪽 테스트가 본다). */
+    private void match(Long neededItemId, Long organizationId, RequesterType requestedBy, String status) {
+        Long matchId = transactionTemplate.execute(tx -> matchRepository.save(Match.builder()
                 .donationItem(donationItemRepository.getReferenceById(donationItemId))
                 .neededItem(neededItemRepository.getReferenceById(neededItemId))
                 .donor(donorRepository.getReferenceById(donorId))
                 .organization(organizationRepository.getReferenceById(organizationId))
-                .requestedBy(requestedBy).quantity(5).build()));
+                .requestedBy(requestedBy).quantity(5).build()).getId());
+        jdbcTemplate.update("update matches set status = ? where match_id = ?", status, matchId);
     }
 
     private int savedRows() {
