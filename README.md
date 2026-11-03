@@ -17,7 +17,7 @@
 - 회원가입 시 국세청 사업자등록정보 진위확인 API로 사업자 확인 (운영자 승인 절차 없음)
 - 필요 물품 등록 (필요 수량과 단위, 희망 최소 상태, 수령 지역, 참고 사진 선택)
 - 기부자가 올린 기부 물품 탐색 (검색어·카테고리·지역·물품 상태 필터), 우리 기관 필요 물품 관리 (수정·삭제)
-- 필요 물품 기준으로 추천 기부 물품 확인 후 기부 요청
+- 탐색한 기부 물품에 기부 요청
 - 기부자가 보낸 기부 제안 수락·거절
 - 물품을 받으면 수령 확인 → 전달 완료
 
@@ -59,7 +59,7 @@
 | 노랑 | 기준 데이터 | `regions`, `item_categories` |
 | 초록 | 물품 | `donation_items`, `donation_item_images`, `needed_items` |
 | 빨강 | 매칭 | `matches` |
-| 보라 | AI 추천 | `organization_recommendations`, `donation_item_recommendations` |
+| 보라 | 추천 | `organization_recommendations` (`donation_item_recommendations`는 지금 쓰지 않음) |
 | 청록 | 채팅 | `chat_rooms`, `chat_participants`, `chat_messages` |
 | 주황 | 알림 | `notifications`, `notification_settings`, `push_registrations` |
 
@@ -74,6 +74,7 @@
 - 파일럿 지역은 경기 부천시 한 곳입니다. `regions`에는 `region_id = 1`인 부천시만 있고, 기부자 활동 지역과 물품 지역은 이 값으로 고정합니다. 거리 계산은 물품 상세주소와 기관 주소의 좌표로 하기 때문에 `regions`에는 좌표를 두지 않습니다.
 - 기부 물품의 물품 위치(`pickup_address`, 도로명 주소)는 등록·수정 때 카카오 주소 검색으로 좌표를 구해 `latitude`·`longitude`에 저장합니다. 변환에 실패해도 등록은 되고 좌표만 비워 둡니다. 다른 회원에게는 구 단위 지역만 보입니다. 필요 물품은 기관 주소 좌표를 씁니다.
 - 물품 카테고리 7개는 `data.sql` 기준 데이터(ID 고정)이고, 추천은 같은 카테고리끼리 묶습니다. 단위는 정해진 목록(개, 권, 장, 벌, 세트, 병, 박스, 켤레, 기타)에서만 받습니다. 매칭은 단위가 같아야 성립해서, 자유 입력이면 같은 물건이 표기 차이로 빠집니다.
+- 기관 추천은 학습 데이터 없이 동작하는 규칙 기반입니다. 같은 카테고리·단위, 기관의 희망 상태 이상, 인증된 기관, 모집 중, 진행 중인 거래 없음을 만족하는 필요 물품을 후보로 두고, 총점 = 100 × (0.6 × 수량 적합도 + 0.4 × 거리 점수)로 순위를 매깁니다. 수량 적합도는 min(기부 수량, 남은 필요 수량) / max(…), 거리 점수는 max(0, 1 − 거리(km) / 20)이고 좌표가 없으면 0입니다. 기관당 1개, 상위 3개를 `organization_recommendations`에 저장합니다. 추천 이유(`reason`)는 비워 두고 따로 붙입니다. 기관 쪽 추천(필요 물품 → 기부 물품)은 없습니다.
 
 ### 스키마 관리
 
@@ -114,7 +115,7 @@ src/main/java/com/itssum
 │   ├── auth            # 로그인, 회원가입, 토큰, 비밀번호 재설정
 │   ├── user            # 회원, 기부자, 복지기관, 약관 동의, 사업자 인증 이력
 │   ├── item            # 기부 물품, 이미지, 필요 물품, 카테고리, 지역
-│   ├── recommendation  # AI 추천 결과
+│   ├── recommendation  # 기관 추천 (규칙 기반 점수 계산과 결과)
 │   ├── match           # 매칭
 │   ├── chat            # 채팅방, 참여자, 메시지
 │   └── notification    # 알림, 알림 설정, 푸시 등록
@@ -133,8 +134,7 @@ src/main/java/com/itssum
     ├── config      # JPA Auditing, Security, WebSocket 설정
     ├── exception   # ErrorCode, BusinessException, GlobalExceptionHandler
     ├── security    # JWT 필터, 인증 처리
-    ├── infra       # S3, 국세청 사업자 API, 메일, FCM
-    └── ai          # AI 추천 연동
+    └── infra       # S3, 국세청 사업자 API, 메일, FCM
 ```
 
 <br>
