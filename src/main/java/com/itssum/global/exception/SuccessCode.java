@@ -51,6 +51,10 @@ public enum SuccessCode {
     ITEM_DONATION_CREATED(HttpStatus.CREATED, "ITEM_201", "기부 물품을 등록했습니다."),
     ITEM_NEEDED_CREATED(HttpStatus.CREATED, "ITEM_201_1", "필요 물품을 등록했습니다."),
 
+    // ---------- 추천 ----------
+    RECOMMENDATION_CREATED(HttpStatus.OK, "RECOMMENDATION_200", "추천 기관을 계산했습니다."),
+    RECOMMENDATION_FOUND(HttpStatus.OK, "RECOMMENDATION_200_1", "추천 기관을 조회했습니다."),
+
     // ---------- 매칭 ----------
     MATCH_LIST_FOUND(HttpStatus.OK, "MATCH_200", "매칭 목록을 조회했습니다."),
     MATCH_FOUND(HttpStatus.OK, "MATCH_200_1", "매칭을 조회했습니다."),

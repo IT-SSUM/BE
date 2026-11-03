@@ -87,6 +87,9 @@ public class SecurityConfig {
                         .hasRole("ORGANIZATION")
                         .requestMatchers(HttpMethod.PATCH, "/api/needed-items/*").hasRole("ORGANIZATION")
                         .requestMatchers(HttpMethod.DELETE, "/api/needed-items/*").hasRole("ORGANIZATION")
+                        // 기관 추천은 기부자만 (내 물품인지는 서비스에서 확인)
+                        .requestMatchers(HttpMethod.POST, "/api/donation-items/*/recommendations").hasRole("DONOR")
+                        .requestMatchers(HttpMethod.GET, "/api/donation-items/*/recommendations").hasRole("DONOR")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .bearerTokenResolver(new PublicPathBearerTokenResolver(PUBLIC_AUTH_PATHS))
