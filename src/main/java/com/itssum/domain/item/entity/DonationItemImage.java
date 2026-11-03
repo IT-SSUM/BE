@@ -36,7 +36,7 @@ public class DonationItemImage extends BaseCreatedTimeEntity {
             foreignKey = @ForeignKey(name = "FK_donation_items_TO_donation_item_images"), comment = "기부 물품 ID")
     private DonationItem donationItem;
 
-    @Column(nullable = false, length = 500, comment = "S3 URL (최소 1장)")
+    @Column(nullable = false, length = 500, comment = "S3 객체 key (물품당 1~5장. 응답에는 서명 URL로 준다)")
     private String imageUrl;
 
     @ColumnDefault("0")

@@ -15,7 +15,7 @@ import com.itssum.domain.item.repository.DonationItemRepository;
 import com.itssum.domain.item.repository.NeededItemRepository;
 import com.itssum.domain.match.entity.MatchStatus;
 import com.itssum.domain.match.repository.MatchRepository;
-import com.itssum.domain.notification.repository.PushTokenRepository;
+import com.itssum.domain.notification.repository.PushRegistrationRepository;
 import com.itssum.domain.user.entity.Donor;
 import com.itssum.domain.user.entity.Organization;
 import com.itssum.domain.user.entity.User;
@@ -47,10 +47,10 @@ class WithdrawalServiceTest {
     private final NeededItemRepository neededItemRepository = mock(NeededItemRepository.class);
     private final RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
     private final PasswordResetTokenRepository passwordResetTokenRepository = mock(PasswordResetTokenRepository.class);
-    private final PushTokenRepository pushTokenRepository = mock(PushTokenRepository.class);
+    private final PushRegistrationRepository pushRegistrationRepository = mock(PushRegistrationRepository.class);
     private final WithdrawalService service = new WithdrawalService(memberReader, donorRepository,
             organizationRepository, matchRepository, donationItemRepository, neededItemRepository,
-            refreshTokenRepository, passwordResetTokenRepository, pushTokenRepository);
+            refreshTokenRepository, passwordResetTokenRepository, pushRegistrationRepository);
 
     @Test
     void donorWithdrawalAnonymizesAndRevokesEverything() {
@@ -65,7 +65,7 @@ class WithdrawalServiceTest {
         verify(donationItemRepository).softDeleteAllByDonorId(eq(1L), any(LocalDateTime.class));
         verify(refreshTokenRepository).deleteAllByUserId(1L);
         verify(passwordResetTokenRepository).deleteAllByUserId(1L);
-        verify(pushTokenRepository).deleteAllByUserId(1L);
+        verify(pushRegistrationRepository).deleteAllByUserId(1L);
         verifyNoInteractions(neededItemRepository);
         assertEquals("탈퇴한 회원", donor.getName());
         assertEquals(UserStatus.WITHDRAWN, user.getStatus());
@@ -102,7 +102,7 @@ class WithdrawalServiceTest {
 
         assertEquals(ErrorCode.USER_WITHDRAWAL_BLOCKED, e.getErrorCode());
         verifyNoInteractions(donationItemRepository, refreshTokenRepository, passwordResetTokenRepository,
-                pushTokenRepository);
+                pushRegistrationRepository);
         assertEquals("최윤서", donor.getName());
         assertEquals(UserStatus.ACTIVE, user.getStatus());
     }

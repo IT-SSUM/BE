@@ -35,6 +35,21 @@ public enum SuccessCode {
 
     // ---------- 물품 ----------
     ITEM_CONDITIONS_FOUND(HttpStatus.OK, "ITEM_200", "물품 상태 기준을 조회했습니다."),
+    ITEM_CATEGORIES_FOUND(HttpStatus.OK, "ITEM_200_1", "물품 카테고리 목록을 조회했습니다."),
+    ITEM_UNITS_FOUND(HttpStatus.OK, "ITEM_200_2", "물품 단위 목록을 조회했습니다."),
+    ITEM_IMAGE_UPLOAD_URL_ISSUED(HttpStatus.OK, "ITEM_200_3", "물품 사진 업로드 URL을 발급했습니다."),
+    ITEM_DONATION_LIST_FOUND(HttpStatus.OK, "ITEM_200_4", "기부 물품 목록을 조회했습니다."),
+    ITEM_DONATION_FOUND(HttpStatus.OK, "ITEM_200_5", "기부 물품을 조회했습니다."),
+    ITEM_DONATION_UPDATED(HttpStatus.OK, "ITEM_200_6", "기부 물품을 수정했습니다."),
+    ITEM_DONATION_DELETED(HttpStatus.OK, "ITEM_200_7", "기부 물품을 삭제했습니다."),
+    ITEM_MY_DONATIONS_FOUND(HttpStatus.OK, "ITEM_200_8", "내가 등록한 기부 물품 목록을 조회했습니다."),
+    ITEM_NEEDED_LIST_FOUND(HttpStatus.OK, "ITEM_200_9", "필요 물품 목록을 조회했습니다."),
+    ITEM_NEEDED_FOUND(HttpStatus.OK, "ITEM_200_10", "필요 물품을 조회했습니다."),
+    ITEM_NEEDED_UPDATED(HttpStatus.OK, "ITEM_200_11", "필요 물품을 수정했습니다."),
+    ITEM_NEEDED_DELETED(HttpStatus.OK, "ITEM_200_12", "필요 물품을 삭제했습니다."),
+    ITEM_MY_NEEDED_FOUND(HttpStatus.OK, "ITEM_200_13", "우리 기관 필요 물품 목록을 조회했습니다."),
+    ITEM_DONATION_CREATED(HttpStatus.CREATED, "ITEM_201", "기부 물품을 등록했습니다."),
+    ITEM_NEEDED_CREATED(HttpStatus.CREATED, "ITEM_201_1", "필요 물품을 등록했습니다."),
 
     // ---------- 매칭 ----------
     MATCH_LIST_FOUND(HttpStatus.OK, "MATCH_200", "매칭 목록을 조회했습니다."),
@@ -57,7 +72,11 @@ public enum SuccessCode {
     NOTIFICATION_LIST_FOUND(HttpStatus.OK, "NOTIFICATION_200", "알림 목록을 조회했습니다."),
     NOTIFICATION_UNREAD_COUNT_FOUND(HttpStatus.OK, "NOTIFICATION_200_1", "안 읽은 알림 수를 조회했습니다."),
     NOTIFICATION_READ(HttpStatus.OK, "NOTIFICATION_200_2", "알림을 읽음 처리했습니다."),
-    NOTIFICATION_ALL_READ(HttpStatus.OK, "NOTIFICATION_200_3", "알림을 모두 읽음 처리했습니다.");
+    NOTIFICATION_ALL_READ(HttpStatus.OK, "NOTIFICATION_200_3", "알림을 모두 읽음 처리했습니다."),
+    NOTIFICATION_SETTINGS_FOUND(HttpStatus.OK, "NOTIFICATION_200_4", "알림 설정을 조회했습니다."),
+    NOTIFICATION_SETTINGS_UPDATED(HttpStatus.OK, "NOTIFICATION_200_5", "알림 설정을 수정했습니다."),
+    PUSH_REGISTRATION_DELETED(HttpStatus.OK, "NOTIFICATION_200_6", "푸시 등록을 삭제했습니다."),
+    PUSH_REGISTRATION_REGISTERED(HttpStatus.CREATED, "NOTIFICATION_201", "기기 푸시를 등록했습니다.");
 
     private final HttpStatus status;
     private final String code;

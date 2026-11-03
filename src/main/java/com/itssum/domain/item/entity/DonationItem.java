@@ -17,9 +17,12 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -64,8 +67,17 @@ public class DonationItem extends BaseTimeEntity {
             foreignKey = @ForeignKey(name = "FK_regions_TO_donation_items"), comment = "물품 위치 (구 단위, 목록·상세에 공개)")
     private Region region;
 
-    @Column(length = 255, comment = "물품 상세 위치 (물품 수정 화면, 비공개·채팅에서 협의)")
+    @Column(length = 255, comment = "물품 위치 (도로명 주소, 좌표 변환 대상. 기부자에게만 보이고 목록·상세에는 구 단위 지역만 공개)")
     private String pickupAddress;
+
+    @Column(length = 100, comment = "물품 상세 주소 (선택, 등록 3/3 화면. 동·호수·전달 메모)")
+    private String pickupAddressDetail;
+
+    @Column(precision = 10, scale = 7, comment = "물품 위치 위도 (주소 지오코딩, 거리순 추천용)")
+    private BigDecimal latitude;
+
+    @Column(precision = 10, scale = 7, comment = "물품 위치 경도")
+    private BigDecimal longitude;
 
     @Column(nullable = false, length = 50, comment = "품목 (어린이 도서, 생수 ...)")
     private String itemName;
@@ -103,16 +115,21 @@ public class DonationItem extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     @OneToMany(mappedBy = "donationItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder asc, id asc")
     private List<DonationItemImage> images = new ArrayList<>();
 
     @Builder
     private DonationItem(Donor donor, ItemCategory category, Region region, String pickupAddress,
+                         String pickupAddressDetail, BigDecimal latitude, BigDecimal longitude,
                          String itemName, int quantity, String unit, ConditionGrade conditionGrade,
                          String description) {
         this.donor = donor;
         this.category = category;
         this.region = region;
         this.pickupAddress = pickupAddress;
+        this.pickupAddressDetail = pickupAddressDetail;
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.itemName = itemName;
         this.quantity = quantity;
         this.unit = unit;
@@ -127,6 +144,50 @@ public class DonationItem extends BaseTimeEntity {
                 .imageUrl(imageUrl)
                 .sortOrder(sortOrder)
                 .build());
+    }
+
+    /** 사진 목록을 이 순서로 바꾼다. 첫 번째가 대표 사진(sortOrder 0)이다. 빠진 사진 행은 orphanRemoval 로 지워진다. */
+    public void replaceImages(List<String> imageKeys) {
+        images.clear();
+        for (int i = 0; i < imageKeys.size(); i++) {
+            addImage(imageKeys.get(i), i);
+        }
+    }
+
+    /** 사진 S3 key 목록 (대표 사진부터). */
+    public List<String> imageKeys() {
+        return images.stream()
+                .sorted(Comparator.comparingInt(DonationItemImage::getSortOrder))
+                .map(DonationItemImage::getImageUrl)
+                .toList();
+    }
+
+    public String representativeImageKey() {
+        List<String> keys = imageKeys();
+        return keys.isEmpty() ? null : keys.getFirst();
+    }
+
+    public void changeDescription(String description) {
+        this.description = description;
+    }
+
+    /** 물품 위치를 바꾼다. 좌표는 새 주소로 다시 구한 값이며, 변환에 실패했으면 null 로 비운다. */
+    public void relocate(String pickupAddress, BigDecimal latitude, BigDecimal longitude) {
+        this.pickupAddress = pickupAddress;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public void changePickupAddressDetail(String pickupAddressDetail) {
+        this.pickupAddressDetail = pickupAddressDetail;
+    }
+
+    public boolean isOwnedBy(Long donorId) {
+        return donor.getId().equals(donorId);
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 
     public void delete() {

@@ -98,6 +98,7 @@ class MemberIntegrationTest {
             jdbcTemplate.update("delete from donors where user_id = ?", userId);
             jdbcTemplate.update("delete from refresh_tokens where user_id = ?", userId);
             jdbcTemplate.update("delete from terms_agreements where user_id = ?", userId);
+            jdbcTemplate.update("delete from notification_settings where user_id = ?", userId);
             jdbcTemplate.update("delete from users where user_id = ?", userId);
         }
     }
