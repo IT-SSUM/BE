@@ -24,6 +24,7 @@ import com.itssum.domain.item.repository.DonationItemRepository;
 import com.itssum.domain.item.repository.NeededItemRepository;
 import com.itssum.domain.match.dto.request.ConfirmAppointmentRequest;
 import com.itssum.domain.match.dto.request.CreateMatchRequest;
+import com.itssum.domain.match.dto.request.UpdateMatchQuantityRequest;
 import com.itssum.domain.match.entity.DeliveryMethod;
 import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.MatchStatus;
@@ -246,6 +247,53 @@ class MatchServiceTest {
         assertEquals(0, donation.getReservedQuantity());
         assertEquals(0, needed.getReservedQuantity());
         assertEquals(NeededItemStatus.RECRUITING, needed.getStatus());
+    }
+
+    @Test
+    void donorChangesTradingQuantityWithoutReservingAndReservationUsesNewQuantity() {
+        when(matches.findById(7L)).thenReturn(Optional.of(match));
+        when(matches.findAllForUser(1L)).thenReturn(List.of(match));
+        service.accept(7L, donorUser);
+
+        var response = service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(1));
+
+        assertEquals(7L, response.matchId());
+        assertEquals(MatchStatus.TRADING, response.status());
+        assertEquals(1, response.quantity());
+        assertEquals(0, donation.getReservedQuantity());
+        assertEquals(0, needed.getReservedQuantity());
+        assertEquals(1, service.detail(7L, donorUser).quantity());
+        assertEquals(1, service.list(donorUser).getFirst().quantity());
+
+        service.reserve(7L, donorUser);
+        assertEquals(1, donation.getReservedQuantity());
+        assertEquals(1, needed.getReservedQuantity());
+        assertEquals(ErrorCode.MATCH_INVALID_STATUS, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(2))).getErrorCode());
+    }
+
+    @Test
+    void quantityChangeRequiresDonorTradingStateAndAvailableQuantity() {
+        assertEquals(ErrorCode.MATCH_INVALID_STATUS, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(1))).getErrorCode());
+        service.accept(7L, donorUser);
+
+        assertEquals(ErrorCode.MATCH_QUANTITY_NOT_DONOR, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, organizationUser, new UpdateMatchQuantityRequest(1))).getErrorCode());
+        assertEquals(ErrorCode.MATCH_INSUFFICIENT_QUANTITY, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(3))).getErrorCode());
+        assertEquals(2, match.getQuantity());
+        assertEquals(0, donation.getReservedQuantity());
+        assertEquals(0, needed.getReservedQuantity());
+
+        ReflectionTestUtils.setField(needed, "requiredQuantity", 8);
+        assertEquals(5, donation.availableQuantity());
+        assertEquals(8, needed.availableQuantity());
+        assertEquals(ErrorCode.MATCH_INSUFFICIENT_QUANTITY, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(6))).getErrorCode());
+        assertEquals(2, match.getQuantity());
+        assertEquals(0, donation.getReservedQuantity());
+        assertEquals(0, needed.getReservedQuantity());
     }
 
     @Test

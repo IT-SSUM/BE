@@ -3,12 +3,14 @@ package com.itssum.domain.match.controller;
 import com.itssum.domain.match.dto.request.CreateMatchRequest;
 import com.itssum.domain.match.dto.request.ConfirmAppointmentRequest;
 import com.itssum.domain.match.dto.request.MatchReasonRequest;
+import com.itssum.domain.match.dto.request.UpdateMatchQuantityRequest;
 import com.itssum.domain.match.dto.response.MatchAcceptedResponse;
 import com.itssum.domain.match.dto.response.MatchAppointmentResponse;
 import com.itssum.domain.match.dto.response.MatchCanceledResponse;
 import com.itssum.domain.match.dto.response.MatchCompletedResponse;
 import com.itssum.domain.match.dto.response.MatchCreatedResponse;
 import com.itssum.domain.match.dto.response.MatchListResponse;
+import com.itssum.domain.match.dto.response.MatchQuantityResponse;
 import com.itssum.domain.match.dto.response.MatchRejectedResponse;
 import com.itssum.domain.match.dto.response.MatchReservedResponse;
 import com.itssum.domain.match.dto.response.MatchResponse;
@@ -82,6 +84,14 @@ public class MatchController {
     public ApiResponse<MatchWithdrawnResponse> withdraw(@PathVariable Long matchId, Principal principal) {
         return ApiResponse.ok(SuccessCode.MATCH_WITHDRAWN,
                 matchService.withdraw(matchId, userResolver.requireUser(principal)));
+    }
+
+    @Operation(summary = "거래중 합의 수량 변경", description = "기부자만 거래중인 건의 합의 수량을 변경합니다. 양쪽 물품의 신청 가능 수량 이하여야 하며, 변경만으로 수량을 예약하지 않습니다.")
+    @PatchMapping("/{matchId}/quantity")
+    public ApiResponse<MatchQuantityResponse> updateQuantity(@PathVariable Long matchId,
+            @Valid @RequestBody UpdateMatchQuantityRequest request, Principal principal) {
+        return ApiResponse.ok(SuccessCode.MATCH_QUANTITY_UPDATED,
+                matchService.updateQuantity(matchId, userResolver.requireUser(principal), request));
     }
 
     @Operation(summary = "거래 예약", description = "상대 수락 후 거래중인 건을 기부자만 예약중으로 바꾸고 양쪽 물품의 예약 수량을 확보합니다.")

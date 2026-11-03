@@ -15,6 +15,7 @@ import com.itssum.domain.match.dto.response.MatchAcceptedResponse;
 import com.itssum.domain.match.dto.response.MatchAppointmentResponse;
 import com.itssum.domain.match.dto.response.MatchCreatedResponse;
 import com.itssum.domain.match.dto.response.MatchListResponse;
+import com.itssum.domain.match.dto.response.MatchQuantityResponse;
 import com.itssum.domain.match.dto.response.MatchReservedResponse;
 import com.itssum.domain.match.dto.response.MatchWithdrawnResponse;
 import com.itssum.domain.match.entity.DeliveryMethod;
@@ -154,6 +155,32 @@ class MatchControllerTest {
                 .andExpect(jsonPath("$.data.quantity").value(3))
                 .andExpect(jsonPath("$.data.reservedAt").value("2026-11-03T11:00:00"))
                 .andExpect(jsonPath("$.data.donationItemName").doesNotExist());
+    }
+
+    @Test
+    void quantityChangeRequiresPositiveBodyAndReturnsUpdatedQuantity() throws Exception {
+        User user = mock(User.class);
+        when(user.isActive()).thenReturn(true);
+        when(users.findById(7L)).thenReturn(Optional.of(user));
+        when(matchService.updateQuantity(eq(9L), eq(user), any()))
+                .thenReturn(new MatchQuantityResponse(9L, MatchStatus.TRADING, 2));
+
+        mockMvc.perform(patch("/api/matches/9/quantity")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokens.issue(7L, UserRole.DONOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("MATCH_200_9"))
+                .andExpect(jsonPath("$.data.matchId").value(9))
+                .andExpect(jsonPath("$.data.status").value("TRADING"))
+                .andExpect(jsonPath("$.data.quantity").value(2))
+                .andExpect(jsonPath("$.data.reservedAt").doesNotExist());
+
+        mockMvc.perform(patch("/api/matches/9/quantity")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokens.issue(7L, UserRole.DONOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":0}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

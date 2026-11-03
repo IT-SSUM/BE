@@ -153,6 +153,10 @@ public class Match extends BaseTimeEntity {
         this.reservedAt = LocalDateTime.now();
     }
 
+    public void changeQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
     public void complete() {
         this.status = MatchStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
