@@ -23,6 +23,8 @@ import com.itssum.domain.item.service.NeededItemCommandService;
 import com.itssum.domain.item.service.NeededItemQueryService;
 import com.itssum.domain.user.entity.UserRole;
 import com.itssum.domain.user.entity.VerificationStatus;
+import com.itssum.global.exception.BusinessException;
+import com.itssum.global.exception.ErrorCode;
 import com.itssum.global.security.AccessTokenProvider;
 import com.itssum.support.SecurityTestConfig;
 import java.time.LocalDateTime;
@@ -154,6 +156,33 @@ class NeededItemControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"));
         verifyNoInteractions(commandService);
+    }
+
+    @Test
+    void organizationCloses200() throws Exception {
+        when(commandService.close(2L, 20L)).thenReturn(DETAIL);
+
+        perform(patch("/api/needed-items/20/close"), 2L, UserRole.ORGANIZATION, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ITEM_200_14"));
+        verify(commandService).close(2L, 20L);
+    }
+
+    @Test
+    void donorCannotClose() throws Exception {
+        perform(patch("/api/needed-items/20/close"), 1L, UserRole.DONOR, null)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMMON_403"));
+        verifyNoInteractions(commandService);
+    }
+
+    @Test
+    void closeOthersItemIs403() throws Exception {
+        when(commandService.close(3L, 20L)).thenThrow(new BusinessException(ErrorCode.ITEM_NOT_OWNER));
+
+        perform(patch("/api/needed-items/20/close"), 3L, UserRole.ORGANIZATION, null)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ITEM_403"));
     }
 
     @Test

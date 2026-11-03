@@ -86,6 +86,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/needed-items", "/api/needed-items/images/presign")
                         .hasRole("ORGANIZATION")
                         .requestMatchers(HttpMethod.PATCH, "/api/needed-items/*").hasRole("ORGANIZATION")
+                        .requestMatchers(HttpMethod.PATCH, "/api/needed-items/*/close").hasRole("ORGANIZATION")
                         .requestMatchers(HttpMethod.DELETE, "/api/needed-items/*").hasRole("ORGANIZATION")
                         // 기관 추천은 기부자만 (내 물품인지는 서비스에서 확인)
                         .requestMatchers(HttpMethod.POST, "/api/donation-items/*/recommendations").hasRole("DONOR")
