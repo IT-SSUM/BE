@@ -48,6 +48,7 @@ public enum SuccessCode {
     ITEM_NEEDED_UPDATED(HttpStatus.OK, "ITEM_200_11", "필요 물품을 수정했습니다."),
     ITEM_NEEDED_DELETED(HttpStatus.OK, "ITEM_200_12", "필요 물품을 삭제했습니다."),
     ITEM_MY_NEEDED_FOUND(HttpStatus.OK, "ITEM_200_13", "우리 기관 필요 물품 목록을 조회했습니다."),
+    ITEM_NEEDED_CLOSED(HttpStatus.OK, "ITEM_200_14", "필요 물품 모집을 종료했습니다."),
     ITEM_DONATION_CREATED(HttpStatus.CREATED, "ITEM_201", "기부 물품을 등록했습니다."),
     ITEM_NEEDED_CREATED(HttpStatus.CREATED, "ITEM_201_1", "필요 물품을 등록했습니다."),
 

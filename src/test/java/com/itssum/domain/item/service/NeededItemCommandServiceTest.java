@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -20,14 +21,20 @@ import com.itssum.domain.item.dto.request.UpdateNeededItemRequest;
 import com.itssum.domain.item.dto.response.NeededItemDetailResponse;
 import com.itssum.domain.item.entity.ConditionGrade;
 import com.itssum.domain.item.entity.NeededItem;
+import com.itssum.domain.item.entity.NeededItemStatus;
 import com.itssum.domain.item.entity.Region;
 import com.itssum.domain.item.image.ItemImageKind;
 import com.itssum.domain.item.image.ItemImages;
 import com.itssum.domain.item.repository.ItemCategoryRepository;
 import com.itssum.domain.item.repository.NeededItemRepository;
 import com.itssum.domain.item.repository.RegionRepository;
+import com.itssum.domain.match.entity.Match;
 import com.itssum.domain.match.entity.MatchStatus;
+import com.itssum.domain.match.entity.RequesterType;
 import com.itssum.domain.match.repository.MatchRepository;
+import com.itssum.domain.notification.entity.NotificationType;
+import com.itssum.domain.notification.service.NotificationService;
+import com.itssum.domain.user.entity.Donor;
 import com.itssum.domain.user.entity.Organization;
 import com.itssum.domain.user.service.MemberReader;
 import com.itssum.global.exception.BusinessException;
@@ -51,9 +58,10 @@ class NeededItemCommandServiceTest {
     private final ItemImages itemImages = mock(ItemImages.class);
     private final NeededItemRepository neededItemRepository = mock(NeededItemRepository.class);
     private final MatchRepository matchRepository = mock(MatchRepository.class);
+    private final NotificationService notificationService = mock(NotificationService.class);
     private final NeededItemCommandService service = new NeededItemCommandService(memberReader,
             new ItemReferences(categoryRepository, regionRepository), itemImages, neededItemRepository, matchRepository,
-            new TransactionTemplate(mock(PlatformTransactionManager.class)));
+            new TransactionTemplate(mock(PlatformTransactionManager.class)), notificationService);
 
     private Organization organization;
 
@@ -208,6 +216,59 @@ class NeededItemCommandServiceTest {
 
         assertTrue(item.isDeleted());
         verify(neededItemRepository).findByIdForUpdate(20L);
+    }
+
+    @Test
+    void closeRejectsDonorProposalsAndWithdrawsOwnRequests() {
+        NeededItem item = existingItem();
+        Match proposal = pendingMatch(item, RequesterType.DONOR);
+        Match request = pendingMatch(item, RequesterType.ORGANIZATION);
+        when(matchRepository.findByNeededItemIdAndStatusForUpdate(20L, MatchStatus.PENDING))
+                .thenReturn(List.of(proposal, request));
+
+        NeededItemDetailResponse response = service.close(ORGANIZATION_ID, 20L);
+
+        assertEquals(NeededItemStatus.CLOSED, response.status());
+        assertEquals(NeededItemStatus.CLOSED, item.getStatus());
+        assertEquals(MatchStatus.REJECTED, proposal.getStatus());
+        assertEquals(MatchStatus.CANCELED, request.getStatus());
+        assertEquals(organization.getUser(), request.getCanceledBy());
+        verify(notificationService).createForMatch(proposal, organization.getUser(), NotificationType.MATCH_REJECTED);
+        verify(notificationService, never()).createForMatch(eq(request), any(), any());
+    }
+
+    @Test
+    void closeAlreadyClosedTouchesNothing() {
+        existingItem().close();
+
+        NeededItemDetailResponse response = service.close(ORGANIZATION_ID, 20L);
+
+        assertEquals(NeededItemStatus.CLOSED, response.status());
+        verify(matchRepository, never()).findByNeededItemIdAndStatusForUpdate(any(), any());
+        verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    void closeOthersItemIs403() {
+        existingItem();
+
+        assertEquals(ErrorCode.ITEM_NOT_OWNER,
+                assertThrows(BusinessException.class, () -> service.close(3L, 20L)).getErrorCode());
+    }
+
+    @Test
+    void closeDeletedItemIs404() {
+        existingItem().delete();
+
+        assertEquals(ErrorCode.ITEM_NOT_FOUND,
+                assertThrows(BusinessException.class, () -> service.close(ORGANIZATION_ID, 20L)).getErrorCode());
+    }
+
+    private static Match pendingMatch(NeededItem needed, RequesterType requestedBy) {
+        Donor donor = ItemFixtures.donor(1L);
+        return Match.builder().donationItem(ItemFixtures.donationItem(10L, donor, List.of("donation-items/1/a.jpg")))
+                .neededItem(needed).donor(donor).organization(needed.getOrganization())
+                .requestedBy(requestedBy).quantity(5).build();
     }
 
     private NeededItem existingItem() {

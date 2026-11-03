@@ -102,6 +102,18 @@ public class NeededItemController {
                 commandService.update(userId(principal), neededItemId, request));
     }
 
+    @Operation(summary = "필요 물품 모집 종료",
+            description = "기관 「필요 물품」의 [모집 종료] → 확인 창 [모집 종료]입니다. 등록한 기관만 호출할 수 있습니다 "
+                    + "(기부자 COMMON_403, 남의 물품 ITEM_403, 없거나 삭제된 물품 ITEM_404).\n"
+                    + "- 종료하면 새 기부 제안·요청을 받지 않고 탐색·추천에서 빠집니다.\n"
+                    + "- 응답 대기 중인 기부자 제안은 거절되고 기부자에게 거절 알림이 갑니다. 기관이 보낸 요청은 철회됩니다.\n"
+                    + "- 거래중·예약중 거래는 그대로이며, 종료 뒤에도 예약·수령 확인까지 진행할 수 있습니다.\n"
+                    + "- 이미 종료된 물품이면 아무것도 바꾸지 않고 지금 상태를 돌려줍니다.")
+    @PatchMapping("/api/needed-items/{neededItemId}/close")
+    public ApiResponse<NeededItemDetailResponse> close(@PathVariable Long neededItemId, Principal principal) {
+        return ApiResponse.ok(SuccessCode.ITEM_NEEDED_CLOSED, commandService.close(userId(principal), neededItemId));
+    }
+
     @Operation(summary = "필요 물품 삭제",
             description = "등록한 기관만 지울 수 있습니다. 응답 대기 중인 제안·요청이나 거래중·예약중인 거래가 있으면 ITEM_409 입니다.")
     @DeleteMapping("/api/needed-items/{neededItemId}")

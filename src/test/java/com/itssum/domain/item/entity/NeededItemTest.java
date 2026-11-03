@@ -2,15 +2,20 @@ package com.itssum.domain.item.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.itssum.domain.user.entity.Organization;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class NeededItemTest {
+
+    private static final LocalDateTime FIRST_CLOSED_AT = LocalDateTime.of(2026, 11, 1, 10, 0);
 
     @Test
     void referenceImageCanBeReplacedAndCleared() {
@@ -43,6 +48,63 @@ class NeededItemTest {
         assertFalse(item.isOwnedBy(1L));
         item.delete();
         assertTrue(item.isDeleted());
+    }
+
+    @Test
+    void closeStopsRecruiting() {
+        NeededItem item = item(mock(Organization.class));
+
+        item.close();
+
+        assertEquals(NeededItemStatus.CLOSED, item.getStatus());
+        assertNotNull(item.getClosedAt());
+    }
+
+    @Test
+    void closeFromFull() {
+        NeededItem item = item(mock(Organization.class));
+        item.reserve(20);
+        assertEquals(NeededItemStatus.FULL, item.getStatus());
+
+        item.close();
+
+        assertEquals(NeededItemStatus.CLOSED, item.getStatus());
+    }
+
+    @Test
+    void closeTwiceKeepsFirstClosedAt() {
+        NeededItem item = item(mock(Organization.class));
+        item.close();
+        ReflectionTestUtils.setField(item, "closedAt", FIRST_CLOSED_AT);
+
+        item.close();
+
+        assertEquals(FIRST_CLOSED_AT, item.getClosedAt());
+    }
+
+    @Test
+    void completingAfterManualCloseKeepsClosedAt() {
+        NeededItem item = item(mock(Organization.class));
+        item.reserve(20);
+        item.close();
+        ReflectionTestUtils.setField(item, "closedAt", FIRST_CLOSED_AT);
+
+        item.complete(20);
+
+        assertEquals(NeededItemStatus.CLOSED, item.getStatus());
+        assertEquals(FIRST_CLOSED_AT, item.getClosedAt());
+    }
+
+    @Test
+    void releaseAfterManualCloseStaysClosed() {
+        NeededItem item = item(mock(Organization.class));
+        item.reserve(5);
+        item.close();
+
+        item.release(5);
+
+        assertEquals(NeededItemStatus.CLOSED, item.getStatus());
+        assertEquals(20, item.availableQuantity());
     }
 
     private static NeededItem item(Organization organization) {
