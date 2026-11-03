@@ -180,8 +180,10 @@ IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같�
 - 비밀값은 GitHub Secrets에만 둡니다. CD가 배포할 때마다 EC2의 `.env`를 새로 만들기 때문에 EC2에서 `.env`를 직접 고치면 다음 배포에서 덮어써집니다.
 - 환경변수를 새로 추가할 때는 GitHub Secrets 등록과 `cd.yml`의 `.env` 블록 수정을 같이 해야 합니다.
 - 이미지 태그는 커밋 SHA입니다. 롤백은 Actions에서 이전 CD 실행을 Re-run 하면 됩니다.
+- FCM 서비스 계정 JSON은 GitHub Secret `FIREBASE_SERVICE_ACCOUNT_BASE64`에 base64 한 줄로 넣습니다. CD가 EC2의 `~/itssum-app/firebase-service-account.json`(권한 600)으로 풀고, compose가 컨테이너의 `/run/secrets/firebase-service-account`에 읽기 전용으로 연결합니다(`FCM_ENABLED=true`, `GOOGLE_APPLICATION_CREDENTIALS`). JSON은 저장소와 이미지에 넣지 않습니다.
+- 서비스 계정 키를 바꿀 때는 새 JSON을 base64로 바꿔 같은 Secret을 덮어쓰고 CD를 다시 실행합니다. PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("<JSON 경로>")) | Set-Clipboard`
 
-필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `NTS_SERVICE_KEY`, `KAKAO_REST_API_KEY`
+필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `NTS_SERVICE_KEY`, `KAKAO_REST_API_KEY`, `FIREBASE_SERVICE_ACCOUNT_BASE64`
 
 ### 이미지 저장소 (S3)
 

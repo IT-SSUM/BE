@@ -17,6 +17,7 @@ build/
 *.key
 *.p12
 *.jks
+firebase-service-account.json
 src/main/resources/application-local.*
 src/main/resources/application-secret.*
 
