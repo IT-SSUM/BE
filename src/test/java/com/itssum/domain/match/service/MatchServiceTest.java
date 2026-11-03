@@ -252,6 +252,7 @@ class MatchServiceTest {
     @Test
     void donorChangesTradingQuantityWithoutReservingAndReservationUsesNewQuantity() {
         when(matches.findById(7L)).thenReturn(Optional.of(match));
+        when(matches.findAllForUser(1L)).thenReturn(List.of(match));
         service.accept(7L, donorUser);
 
         var response = service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(1));
@@ -262,6 +263,7 @@ class MatchServiceTest {
         assertEquals(0, donation.getReservedQuantity());
         assertEquals(0, needed.getReservedQuantity());
         assertEquals(1, service.detail(7L, donorUser).quantity());
+        assertEquals(1, service.list(donorUser).getFirst().quantity());
 
         service.reserve(7L, donorUser);
         assertEquals(1, donation.getReservedQuantity());
@@ -280,6 +282,15 @@ class MatchServiceTest {
                 () -> service.updateQuantity(7L, organizationUser, new UpdateMatchQuantityRequest(1))).getErrorCode());
         assertEquals(ErrorCode.MATCH_INSUFFICIENT_QUANTITY, assertThrows(BusinessException.class,
                 () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(3))).getErrorCode());
+        assertEquals(2, match.getQuantity());
+        assertEquals(0, donation.getReservedQuantity());
+        assertEquals(0, needed.getReservedQuantity());
+
+        ReflectionTestUtils.setField(needed, "requiredQuantity", 8);
+        assertEquals(5, donation.availableQuantity());
+        assertEquals(8, needed.availableQuantity());
+        assertEquals(ErrorCode.MATCH_INSUFFICIENT_QUANTITY, assertThrows(BusinessException.class,
+                () -> service.updateQuantity(7L, donorUser, new UpdateMatchQuantityRequest(6))).getErrorCode());
         assertEquals(2, match.getQuantity());
         assertEquals(0, donation.getReservedQuantity());
         assertEquals(0, needed.getReservedQuantity());
