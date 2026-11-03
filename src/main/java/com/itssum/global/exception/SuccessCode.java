@@ -61,6 +61,7 @@ public enum SuccessCode {
     MATCH_ACCEPTED(HttpStatus.OK, "MATCH_200_6", "기부 제안·요청을 수락했습니다."),
     MATCH_REJECTED(HttpStatus.OK, "MATCH_200_7", "기부 제안·요청을 거절했습니다."),
     MATCH_WITHDRAWN(HttpStatus.OK, "MATCH_200_8", "기부 제안·요청을 철회했습니다."),
+    MATCH_QUANTITY_UPDATED(HttpStatus.OK, "MATCH_200_9", "거래중 합의 수량을 변경했습니다."),
     MATCH_CREATED(HttpStatus.CREATED, "MATCH_201", "기부 제안·요청을 생성했습니다."),
 
     // ---------- 채팅 ----------

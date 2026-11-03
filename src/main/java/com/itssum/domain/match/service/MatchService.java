@@ -11,12 +11,14 @@ import com.itssum.domain.item.repository.DonationItemRepository;
 import com.itssum.domain.item.repository.NeededItemRepository;
 import com.itssum.domain.match.dto.request.ConfirmAppointmentRequest;
 import com.itssum.domain.match.dto.request.CreateMatchRequest;
+import com.itssum.domain.match.dto.request.UpdateMatchQuantityRequest;
 import com.itssum.domain.match.dto.response.MatchAcceptedResponse;
 import com.itssum.domain.match.dto.response.MatchAppointmentResponse;
 import com.itssum.domain.match.dto.response.MatchCanceledResponse;
 import com.itssum.domain.match.dto.response.MatchCompletedResponse;
 import com.itssum.domain.match.dto.response.MatchCreatedResponse;
 import com.itssum.domain.match.dto.response.MatchListResponse;
+import com.itssum.domain.match.dto.response.MatchQuantityResponse;
 import com.itssum.domain.match.dto.response.MatchRejectedResponse;
 import com.itssum.domain.match.dto.response.MatchReservedResponse;
 import com.itssum.domain.match.dto.response.MatchResponse;
@@ -156,6 +158,26 @@ public class MatchService {
         match.reserve();
         notificationService.createForMatch(match, actor, NotificationType.MATCH_RESERVED);
         return MatchReservedResponse.from(match);
+    }
+
+    @Transactional
+    public MatchQuantityResponse updateQuantity(Long matchId, User actor, UpdateMatchQuantityRequest request) {
+        Match match = findForUpdate(matchId, actor);
+        if (!match.getDonor().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.MATCH_QUANTITY_NOT_DONOR);
+        }
+        requireStatus(match, MatchStatus.TRADING);
+        DonationItem donation = lockDonation(match);
+        NeededItem needed = lockNeeded(match);
+        if (donation.getDeletedAt() != null || needed.getDeletedAt() != null
+                || needed.getStatus() == NeededItemStatus.CLOSED) {
+            throw new BusinessException(ErrorCode.MATCH_INVALID_ITEM);
+        }
+        if (request.quantity() > donation.availableQuantity() || request.quantity() > needed.availableQuantity()) {
+            throw new BusinessException(ErrorCode.MATCH_INSUFFICIENT_QUANTITY);
+        }
+        match.changeQuantity(request.quantity());
+        return MatchQuantityResponse.from(match);
     }
 
     @Transactional
