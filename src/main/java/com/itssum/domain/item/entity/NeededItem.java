@@ -174,10 +174,21 @@ public class NeededItem extends BaseTimeEntity {
         refreshStatus();
     }
 
-    private void refreshStatus() {
-        if (receivedQuantity == requiredQuantity) {
+    /**
+     * 기관이 모집을 직접 종료한다. 이미 종료됐으면(직접 종료했거나 받은 수량을 다 채움) 아무것도 바꾸지 않는다.
+     * 종료한 뒤에는 예약·취소·수령으로 상태가 바뀌지 않는다 (refreshStatus).
+     */
+    public void close() {
+        if (status != NeededItemStatus.CLOSED) {
             status = NeededItemStatus.CLOSED;
             closedAt = LocalDateTime.now();
+        }
+    }
+
+    /** 받은 수량이 필요 수량을 채우면 종료한다. 이미 종료된 물품은 처음 종료한 시각을 그대로 둔다. */
+    private void refreshStatus() {
+        if (receivedQuantity == requiredQuantity) {
+            close();
         } else if (status != NeededItemStatus.CLOSED) {
             status = availableQuantity() == 0 ? NeededItemStatus.FULL : NeededItemStatus.RECRUITING;
         }
