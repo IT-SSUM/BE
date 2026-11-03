@@ -2,8 +2,10 @@ package com.itssum.domain.item.repository;
 
 import com.itssum.domain.item.entity.ConditionGrade;
 import com.itssum.domain.item.entity.NeededItem;
+import com.itssum.domain.match.entity.MatchStatus;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,22 @@ public interface NeededItemRepository extends JpaRepository<NeededItem, Long> {
     List<NeededItem> search(@Param("likePattern") String likePattern, @Param("categoryId") Long categoryId,
                             @Param("regionId") Long regionId, @Param("condition") ConditionGrade condition,
                             @Param("beforeId") Long beforeId, Pageable pageable);
+
+    /**
+     * 추천 후보: 삭제되지 않은 모집중 물품 중 사업자 확인이 유효한(VERIFIED) 기관의 것으로, 카테고리·단위가 같고
+     * 기관의 희망 상태가 acceptableConditions 안에 있으며, 이 기부 물품과 끝나지 않은 매칭이 없는 것. 기관을 함께 읽는다.
+     */
+    @Query("select n from NeededItem n join fetch n.organization o "
+            + "where n.deletedAt is null and n.status = com.itssum.domain.item.entity.NeededItemStatus.RECRUITING "
+            + "and o.verificationStatus = com.itssum.domain.user.entity.VerificationStatus.VERIFIED "
+            + "and n.category.id = :categoryId and n.unit = :unit "
+            + "and n.desiredCondition in :acceptableConditions "
+            + "and not exists (select m.id from Match m where m.donationItem.id = :donationItemId "
+            + "and m.neededItem = n and m.status not in :finished)")
+    List<NeededItem> findRecommendationCandidates(@Param("donationItemId") Long donationItemId,
+                                                  @Param("categoryId") Long categoryId, @Param("unit") String unit,
+                                                  @Param("acceptableConditions") Collection<ConditionGrade> acceptableConditions,
+                                                  @Param("finished") Collection<MatchStatus> finished);
 
     /** 기관 「필요 나눔 관리」: 상태와 관계없이 삭제되지 않은 우리 기관 물품, 최신 등록순. */
     @Query("select n from NeededItem n join fetch n.category "
