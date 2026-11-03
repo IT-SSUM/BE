@@ -260,9 +260,12 @@ class MatchServiceTest {
         assertEquals(7L, response.matchId());
         assertEquals(MatchStatus.TRADING, response.status());
         assertEquals(1, response.quantity());
+        assertEquals(2, response.initialQuantity());
         assertEquals(0, donation.getReservedQuantity());
         assertEquals(0, needed.getReservedQuantity());
-        assertEquals(1, service.detail(7L, donorUser).quantity());
+        var detail = service.detail(7L, donorUser);
+        assertEquals(1, detail.quantity());
+        assertEquals(2, detail.initialQuantity());
         assertEquals(1, service.list(donorUser).getFirst().quantity());
 
         service.reserve(7L, donorUser);

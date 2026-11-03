@@ -76,8 +76,11 @@ public class Match extends BaseTimeEntity {
     @Column(nullable = false, length = 20, comment = "DONOR(기부 제안) | ORGANIZATION(기부 요청)")
     private RequesterType requestedBy;
 
-    @Column(nullable = false, comment = "제안/요청 수량 (기부자가 예약중으로 변경하면 양쪽 reserved_quantity에 반영)")
+    @Column(nullable = false, comment = "현재 합의 수량 (기부자가 예약중으로 변경하면 양쪽 reserved_quantity에 반영)")
     private int quantity;
+
+    @Column(nullable = false, comment = "최초 제안·요청 수량 (합의 수량을 변경해도 유지)")
+    private int initialQuantity;
 
     @Column(length = 500, comment = "상대에게 전할 메시지")
     private String message;
@@ -135,6 +138,7 @@ public class Match extends BaseTimeEntity {
         this.organization = organization;
         this.requestedBy = requestedBy;
         this.quantity = quantity;
+        this.initialQuantity = quantity;
         this.message = message;
     }
 

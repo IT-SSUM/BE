@@ -163,7 +163,7 @@ class MatchControllerTest {
         when(user.isActive()).thenReturn(true);
         when(users.findById(7L)).thenReturn(Optional.of(user));
         when(matchService.updateQuantity(eq(9L), eq(user), any()))
-                .thenReturn(new MatchQuantityResponse(9L, MatchStatus.TRADING, 2));
+                .thenReturn(new MatchQuantityResponse(9L, MatchStatus.TRADING, 2, 3));
 
         mockMvc.perform(patch("/api/matches/9/quantity")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokens.issue(7L, UserRole.DONOR))
@@ -174,6 +174,7 @@ class MatchControllerTest {
                 .andExpect(jsonPath("$.data.matchId").value(9))
                 .andExpect(jsonPath("$.data.status").value("TRADING"))
                 .andExpect(jsonPath("$.data.quantity").value(2))
+                .andExpect(jsonPath("$.data.initialQuantity").value(3))
                 .andExpect(jsonPath("$.data.reservedAt").doesNotExist());
 
         mockMvc.perform(patch("/api/matches/9/quantity")
