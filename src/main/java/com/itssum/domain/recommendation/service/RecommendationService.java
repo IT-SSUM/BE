@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 기부자 「기관 추천」. POST 는 기부 물품 행을 잠그고 추천을 다시 계산해 저장하고(이전 결과는 지운다),
- * GET 은 저장된 추천 중 지금 제안할 수 있는 것만 순위를 다시 매겨 돌려준다. 추천 이유는 비워 둔다.
+ * GET 은 저장된 추천 중 지금 제안할 수 있는 것만 순위를 다시 매겨 돌려준다.
  */
 @Service
 @RequiredArgsConstructor
@@ -52,7 +52,8 @@ public class RecommendationService {
                 RecommendationRanker.rank(donation.availableQuantity(), candidates).stream()
                         .map(ranked -> OrganizationRecommendation.builder().donationItem(donation)
                                 .neededItem(ranked.neededItem()).organization(ranked.neededItem().getOrganization())
-                                .rankNo(ranked.rank()).score(ranked.score()).distanceKm(ranked.distanceKm()).build())
+                                .rankNo(ranked.rank()).score(ranked.score()).distanceKm(ranked.distanceKm())
+                                .reason(RecommendationReason.from(donation.availableQuantity(), ranked)).build())
                         .toList());
         return saved.stream()
                 .map(recommendation -> OrganizationRecommendationResponse.of(recommendation.getRankNo(), recommendation))
