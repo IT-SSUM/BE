@@ -21,7 +21,9 @@ public record OrganizationRecommendationResponse(
         @Schema(description = "총점 (0~100, 계산 시점 기준)", example = "96.00") BigDecimal score,
         @Schema(description = "기부 물품 위치와 기관 사이 직선 거리(km), 좌표가 없으면 null", example = "2.00")
         BigDecimal distanceKm,
-        @Schema(description = "추천 이유. 지금은 항상 null", nullable = true) String reason) {
+        @Schema(description = "추천 계산 당시의 물품 조건·지원 가능 수량·거리로 작성한 이유. 좌표가 없으면 거리 설명 제외",
+                example = "요청한 물품 분류와 상태에 맞아요. 필요 수량 30권 중 20권까지 지원할 수 있어요. 기관까지 직선거리 약 2km예요.")
+        String reason) {
 
     public static OrganizationRecommendationResponse of(int rank, OrganizationRecommendation recommendation) {
         NeededItem neededItem = recommendation.getNeededItem();

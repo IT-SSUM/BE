@@ -113,7 +113,8 @@ class RecommendationServiceTest {
         assertEquals(List.of(1, 2), saved.getValue().stream().map(OrganizationRecommendation::getRankNo).toList());
         assertEquals(List.of(full, half),
                 saved.getValue().stream().map(OrganizationRecommendation::getNeededItem).toList());
-        assertNull(saved.getValue().get(0).getReason());
+        assertEquals("요청한 물품 분류와 상태에 맞아요. 필요 수량 30장 전체를 지원할 수 있어요. 기관과 매우 가까운 위치예요.",
+                saved.getValue().get(0).getReason());
         assertEquals(101L, saved.getValue().get(0).getOrganization().getId());
 
         OrganizationRecommendationResponse first = response.get(0);
@@ -126,7 +127,7 @@ class RecommendationServiceTest {
         assertEquals(ConditionGrade.MID, first.desiredCondition());
         assertEquals(new BigDecimal("100.00"), first.score());
         assertEquals(new BigDecimal("0.00"), first.distanceKm());
-        assertNull(first.reason());
+        assertEquals(saved.getValue().get(0).getReason(), first.reason());
         assertEquals(new BigDecimal("70.00"), response.get(1).score());
     }
 
@@ -144,13 +145,17 @@ class RecommendationServiceTest {
 
     @Test
     void recommendWithoutDonationCoordinatesHasNullDistance() {
+        NeededItem needed = candidate(1L, 101L, 30);
+        ReflectionTestUtils.setField(needed, "unit", "병");
         when(neededItemRepository.findRecommendationCandidates(any(), any(), any(), any(), any()))
-                .thenReturn(List.of(candidate(1L, 101L, 30)));
+                .thenReturn(List.of(needed));
 
         OrganizationRecommendationResponse response = service.recommend(DONOR_ID, ITEM_ID).get(0);
 
         assertNull(response.distanceKm());
         assertEquals(new BigDecimal("60.00"), response.score());
+        assertEquals("요청한 물품 분류와 상태에 맞아요. 필요 수량 30병 전체를 지원할 수 있어요.",
+                response.reason());
     }
 
     @Test

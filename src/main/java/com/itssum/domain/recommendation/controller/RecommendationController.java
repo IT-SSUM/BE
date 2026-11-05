@@ -27,13 +27,13 @@ public class RecommendationController {
             + "- 같은 카테고리·단위, 희망 상태 충족, 인증된 기관, 모집 중, 진행 중인 거래 없음을 만족하는 필요 물품을 "
             + "총점(수량 적합도 60% + 거리 40%) 순으로 기관당 1개, 최대 3개 돌려줍니다.\n"
             + "- 신청 가능 수량이 0인 물품은 빈 목록입니다.\n"
-            + "- reason(추천 이유)은 지금은 항상 null 입니다.";
+            + "- reason은 계산 당시의 물품 조건·지원 가능 수량·거리를 설명하며, 좌표가 없으면 거리 설명은 제외합니다.";
 
     private final RecommendationService recommendationService;
 
     @Operation(summary = "추천 기관 계산",
             description = "기부자 「기관 추천」에 [추천 기관 보기]로 들어올 때 부릅니다. 다시 계산해 저장하고, "
-                    + "이전 결과(추천 이유 포함)는 지워집니다." + COMMON_DESCRIPTION)
+                    + "이전 결과를 지우고 추천 이유도 새로 생성합니다." + COMMON_DESCRIPTION)
     @PostMapping("/api/donation-items/{donationItemId}/recommendations")
     public ApiResponse<List<OrganizationRecommendationResponse>> recommend(@PathVariable Long donationItemId,
                                                                            Principal principal) {
