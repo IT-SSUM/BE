@@ -185,7 +185,10 @@ class RecommendationIntegrationTest {
                 .andExpect(jsonPath("$.data[0].distanceKm").value(2.0))
                 .andExpect(jsonPath("$.data[1].distanceKm").value(1.0))
                 .andExpect(jsonPath("$.data[2].distanceKm").value(5.0))
-                .andExpect(jsonPath("$.data[0].reason").doesNotExist());
+                .andExpect(jsonPath("$.data[0].reason").value("요청한 물품 분류와 상태에 맞아요. "
+                        + "필요 수량 20켤레 전체를 지원할 수 있어요. 기관까지 직선거리 약 2km예요."))
+                .andExpect(jsonPath("$.data[1].reason").value("요청한 물품 분류와 상태에 맞아요. "
+                        + "필요 수량 30켤레 중 20켤레까지 지원할 수 있어요. 기관까지 직선거리 약 1km예요."));
         assertEquals(List.of(orgA, orgC, orgB), organizationIds(first));
         assertEquals(3, savedRows());
 
@@ -199,7 +202,9 @@ class RecommendationIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("RECOMMENDATION_200_1"))
                 .andExpect(jsonPath("$.data[0].rank").value(1))
-                .andExpect(jsonPath("$.data[1].rank").value(2));
+                .andExpect(jsonPath("$.data[1].rank").value(2))
+                .andExpect(jsonPath("$.data[0].reason").value("요청한 물품 분류와 상태에 맞아요. "
+                        + "필요 수량 20켤레 전체를 지원할 수 있어요. 기관까지 직선거리 약 2km예요."));
         assertEquals(List.of(orgA, orgB), organizationIds(afterSuspend));
 
         // 4. A 에 기부 제안이 응답 대기 중 → 조회에서 빠진다

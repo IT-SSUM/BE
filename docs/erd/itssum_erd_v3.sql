@@ -24,6 +24,7 @@
 --   * chat_messages : message_type에 APPOINTMENT(전달 약속 카드) 추가
 --   * donation_items: pickup_address_detail(상세 주소), latitude·longitude(물품 좌표) 추가 (#31)
 --   * item_categories: 기준 데이터 7개 (data.sql), 단위는 정해진 목록(ItemUnits)에서만 받음 (#31)
+--   * item_categories: 기준 데이터에 미사용 소모품(category_id 8) 추가, 총 8개 (#50)
 -- =====================================================================
 
 
