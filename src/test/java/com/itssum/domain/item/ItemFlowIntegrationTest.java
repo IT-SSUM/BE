@@ -155,8 +155,10 @@ class ItemFlowIntegrationTest {
         // 기준 데이터는 로그인 없이
         mockMvc.perform(get("/api/item-categories"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(7))
-                .andExpect(jsonPath("$.data[4].name").value("도서·문구"));
+                .andExpect(jsonPath("$.data.length()").value(8))
+                .andExpect(jsonPath("$.data[4].name").value("도서·문구"))
+                .andExpect(jsonPath("$.data[7].categoryId").value(8))
+                .andExpect(jsonPath("$.data[7].name").value("미사용 소모품"));
         mockMvc.perform(get("/api/item-units"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(9));
