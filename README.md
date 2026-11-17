@@ -1,324 +1,226 @@
-# IT:SSUM
+# ♾️ IT:SSUM
 
-기부자와 복지기관을 연결하는 물품 기부 매칭 서비스 IT:SSUM의 백엔드 레포지토리입니다.
+### 버려질 자원을 가장 필요한 곳으로,
+### 남는 물품과 필요한 복지기관을 연결하는 나눔 플랫폼
+<img width="100%" alt="IT:SSUM 배너" src="docs/images/banner/banner.png" />
 
-<br>
+---
 
-## 주요 기능
+## ✨ 프로젝트 소개
 
-**기부자**
-- 기부 물품 등록 (카테고리, 품목, 수량과 단위, 물품 상태 상·중·하, 사진 1~5장, 물품 위치 주소, 지역은 경기 부천시 고정)
-- 기관이 올린 필요 물품 탐색 (검색어·카테고리·지역·희망 상태 필터), 내가 등록한 물품 관리 (수정·삭제)
-- 등록한 물품 기준으로 추천 기관 목록 확인 후 기부 제안
-- 기관이 보낸 기부 요청 수락·거절 및 거래 수량 예약
-- 채팅으로 전달 방법·일정·장소 협의
+IT:SSUM은 쓰지 않는 물품을 그 물품이 실제로 필요한 복지기관에 연결하는 양방향 물품 기부 플랫폼입니다.
+기부의 양보다 적합성에 집중해, 아직 쓸 수 있는 물품이 버려지기 전에 필요한 곳에서 다시 쓰이도록 돕습니다.
 
-**복지기관**
-- 회원가입 시 국세청 사업자등록정보 진위확인 API로 사업자 확인 (운영자 승인 절차 없음)
-- 필요 물품 등록 (필요 수량과 단위, 희망 최소 상태, 수령 지역, 참고 사진 선택)
-- 기부자가 올린 기부 물품 탐색 (검색어·카테고리·지역·물품 상태 필터), 우리 기관 필요 물품 관리 (수정·삭제·모집 종료)
-- 탐색한 기부 물품에 기부 요청
-- 기부자가 보낸 기부 제안 수락·거절
-- 물품을 받으면 수령 확인 → 전달 완료
+- **기간** : 2026.10.13 ~ 2026.11.18
+- **인원** : Backend 2명
+- **목표** : 기관의 수요와 기부 물품을 구조화하고 설명 가능한 추천으로 연결해, 기부처 탐색 부담을 줄이고 수령 확인까지 실제 재사용으로 이어지게 하는 것
+- **핵심 흐름** : 기부·필요 물품 등록 → 추천 기관 확인 → 기부 제안·요청 → 수락 후 채팅 협의 → 수량 예약 → 수령 확인·전달 완료
+- **서비스 URL** : [https://itssum.site](https://itssum.site)
 
-**공통**
-- STOMP 기반 1:1 채팅 (수락한 개별 거래 1건당 채팅방 1개, 거래중부터 이용 가능)
-- 매칭 상태가 바뀔 때마다 알림 (실시간 구독 + 목록 조회, 읽음 처리)
-- 이메일 링크로 비밀번호 재설정
+---
 
-<br>
+## 🧑🏻‍💻 팀원 및 역할
 
-## 기술 스택
+|                [이창훈](https://github.com/Chhun-Lee)                 |               [허건우](https://github.com/woo6629058)                |
+|:-----------------------------------------------------------------:|:-----------------------------------------------------------------:|
+| <img src="https://avatars.githubusercontent.com/u/220421602?v=4" width="200" alt="이창훈 프로필"> | <img src="https://avatars.githubusercontent.com/u/156512340?v=4" width="200" alt="허건우 프로필"> |
+|           인증·회원·물품·추천·인프라            |                         매칭·채팅·알림                          |
 
-| 구분 | 사용 |
-|---|---|
-| Language | Java 21 |
-| Framework | Spring Boot 4.1.1, Spring MVC |
-| DB | MySQL 8.4, Spring Data JPA (Hibernate) |
-| 인증 | Spring Security, JWT (OAuth2 Resource Server) |
-| 실시간 | Spring WebSocket + STOMP |
-| 기타 | Validation, Java Mail Sender (Gmail SMTP), Caffeine, Lombok |
-| 외부 API | 국세청 사업자등록정보 진위확인 (공공데이터포털), 카카오 로컬 (주소 → 좌표) |
-| 파일 저장 | AWS S3 (Presigned URL), AWS Lambda (채팅 썸네일) |
-| Build | Gradle (Groovy) |
-| 배포 | GitHub Actions, Docker, AWS EC2 · RDS, Nginx, Let's Encrypt |
-| API 문서 | springdoc-openapi (Swagger UI) |
-| 알림 | FCM (기기 푸시) |
+---
 
-<br>
+## 🚀 주요 기능
 
-## ERD
+| 기능 | 설명 |
+| --- | --- |
+| 인증·회원 | 이메일 인증, JWT 로그인·토큰 재발급, 기부자·복지기관 회원가입, 회원 탈퇴 |
+| 기관 인증 | 국세청 사업자등록정보 진위확인 API로 가입 시 사업자 확인 |
+| 물품 | 기부 물품·필요 물품 등록·수정·삭제, 검색어·카테고리·지역·상태 필터 탐색, 필요 물품 모집 종료 |
+| 기관 추천 | 기부 물품 기준 규칙 기반 추천 (수량 적합도·거리 점수), 추천 이유 제공 |
+| 매칭 | 기부 제안·요청, 수락·거절·철회, 합의 수량 변경, 수량 예약, 전달 약속, 수령 확인, 취소 |
+| 채팅 | STOMP 기반 1:1 채팅, 이미지 메시지와 썸네일, 읽음 처리, 전달 약속 카드 |
+| 알림 | 매칭 상태 변경 알림, 실시간 구독, FCM 푸시, 알림 설정 |
+| 파일 | S3 Presigned URL 기반 물품·채팅 이미지 직접 업로드 |
 
-![ERD](docs/images/erd/ITSSUM.png)
+---
 
+## 🧩 핵심 기술 및 설계
 
+### 1. 설명 가능한 규칙 기반 기관 추천
 
-| 색 | 도메인 | 테이블 |
-|---|---|---|
-| 파랑 | 회원·인증 | `users`, `terms_agreements`, `password_reset_tokens`, `refresh_tokens`, `donors`, `organizations`, `organization_verifications` |
-| 노랑 | 기준 데이터 | `regions`, `item_categories` |
-| 초록 | 물품 | `donation_items`, `donation_item_images`, `needed_items` |
-| 빨강 | 매칭 | `matches` |
-| 보라 | 추천 | `organization_recommendations` (`donation_item_recommendations`는 지금 쓰지 않음) |
-| 청록 | 채팅 | `chat_rooms`, `chat_participants`, `chat_messages` |
-| 주황 | 알림 | `notifications`, `notification_settings`, `push_registrations` |
+- 학습 데이터가 없는 초기 서비스에서도 바로 동작하도록, 필수 조건으로 후보를 거른 뒤 점수로 순위를 매기는 방식으로 구현
+- 필수 조건: 같은 카테고리·단위, 기관 희망 상태 이상, 인증된 기관, 모집 중
+- 총점 = 100 × (0.6 × 수량 적합도 + 0.4 × 거리 점수). 거리는 하버사인 공식, 20km 기준
+- 카카오 로컬 API로 주소를 좌표로 바꿔 거리를 계산하고, 변환에 실패하면 등록은 유지한 채 거리 점수만 0으로 처리
+- 상위 3개 기관과 함께 충족한 조건·지원 가능 수량·거리를 추천 이유로 제공해, 기부자가 근거를 보고 직접 선택
 
-설계하면서 정한 것들
+### 2. 상태 머신 기반 매칭과 단계별 수량 확보
 
-- `donors`, `organizations`, `notification_settings`는 `users`의 PK를 그대로 PK로 씁니다. 엔티티에서는 `@MapsId`로 매핑합니다.
-- 개별 거래는 기부자 1명과 기관 1곳 사이에서 기부 물품 1개와 필요 물품 1개를 잇습니다. 물품 하나는 여러 개별 거래에 참여할 수 있습니다. 기부자가 먼저 제안한 건지 기관이 먼저 요청한 건지는 `requested_by`로 구분합니다.
-- 기부 물품 하나를 여러 기관에 나눠 줄 수 있어서 수량을 `quantity`, `reserved_quantity`, `completed_quantity` 세 개로 관리합니다. 필요 물품도 같은 방식입니다.
-- 매칭 목록 조회가 잦아서 `matches`에 `donor_id`, `organization_id`를 중복 저장했습니다.
-- 회원 탈퇴, 물품 삭제는 `deleted_at`을 채우는 soft delete입니다. 응답 대기 중인 제안·요청이나 거래중·예약중인 거래가 걸린 물품은 지울 수 없습니다.
-- 회원 탈퇴 때는 이름·연락처·이메일 등 개인정보를 자리표시 값으로 덮어써서, 같은 이메일·사업자번호로 다시 가입할 수 있게 합니다. 응답 대기 중인 제안·요청이나 거래중·예약중인 거래가 있으면 탈퇴할 수 없습니다.
-- 파일럿 지역은 경기 부천시 한 곳입니다. `regions`에는 `region_id = 1`인 부천시만 있고, 기부자 활동 지역과 물품 지역은 이 값으로 고정합니다. 거리 계산은 물품 상세주소와 기관 주소의 좌표로 하기 때문에 `regions`에는 좌표를 두지 않습니다.
-- 기부 물품의 물품 위치(`pickup_address`, 도로명 주소)는 등록·수정 때 카카오 주소 검색으로 좌표를 구해 `latitude`·`longitude`에 저장합니다. 변환에 실패해도 등록은 되고 좌표만 비워 둡니다. 다른 회원에게는 구 단위 지역만 보입니다. 필요 물품은 기관 주소 좌표를 씁니다.
-- 물품 카테고리 8개는 `data.sql` 기준 데이터(ID 고정)이고, 추천은 같은 카테고리끼리 묶습니다. 단위는 정해진 목록(개, 권, 장, 벌, 세트, 병, 박스, 켤레, 기타)에서만 받습니다. 매칭은 단위가 같아야 성립해서, 자유 입력이면 같은 물건이 표기 차이로 빠집니다.
-- 기관 추천은 학습 데이터 없이 동작하는 규칙 기반입니다. 같은 카테고리·단위, 기관의 희망 상태 이상, 인증된 기관, 모집 중, 진행 중인 거래 없음을 만족하는 필요 물품을 후보로 두고, 총점 = 100 × (0.6 × 수량 적합도 + 0.4 × 거리 점수)로 순위를 매깁니다. 수량 적합도는 min(기부 수량, 남은 필요 수량) / max(…), 거리 점수는 max(0, 1 − 거리(km) / 20)이고 좌표가 없으면 0입니다. 기관당 1개, 상위 3개를 `organization_recommendations`에 저장합니다. 추천 이유(`reason`)는 계산 당시 충족한 물품 조건·지원 가능 수량·거리를 설명하며, 좌표가 없으면 거리 설명은 제외합니다. 기관 쪽 추천(필요 물품 → 기부 물품)은 없습니다.
+- 물품을 여러 기관에 나눠 줄 수 있도록 수량을 전체·예약·완료로 분리해 관리
+- `PENDING → TRADING → RESERVED → COMPLETED` 전이를 엔티티 메서드로만 허용하고, 단계마다 행동할 수 있는 주체를 검증
+- 수락만으로는 수량을 잡지 않고 기부자가 예약할 때 양쪽 물품에 반영하며, 완료 시 완료 수량으로 옮기고 예약 중 취소 시 되돌림
 
-### 스키마 관리
+### 3. 비관적 락으로 수량 초과 예약 방지
 
-Flyway는 쓰지 않고 `spring.jpa.hibernate.ddl-auto: update`로 관리합니다. 그래서 실제 스키마의 기준은 엔티티입니다.
+- 여러 거래가 같은 물품을 동시에 예약하면 신청 가능 수량을 넘을 수 있음
+- 예약·완료·취소 시 매칭과 기부·필요 물품 행을 `PESSIMISTIC_WRITE`로 잠그고, 항상 같은 순서로 조회해 데드락 방지
+- 잠근 상태에서 신청 가능 수량을 다시 검사해 동시 요청에도 수량을 넘지 않도록 보장
 
-- 엔티티를 고치면 `docs/erd/itssum_erd_v3.sql`과 ERDCloud도 같이 고쳐주세요.
-- `update`는 컬럼 추가만 반영하고 타입 변경이나 컬럼 삭제는 반영하지 않습니다. 이런 변경이 있으면 로컬 DB를 지우고 다시 띄우면 됩니다.
-- 지역 같은 기준 데이터는 `src/main/resources/data.sql`이 서버가 뜰 때마다 넣습니다. `INSERT IGNORE`라서 이미 있으면 건너뜁니다.
+### 4. 커밋 이후 전송하는 채팅·알림
 
-<br>
+- 수락된 거래 1건마다 채팅방 1개를 열고, 거래가 끝나면 읽기 전용으로 전환
+- 메시지와 알림은 DB 커밋 후(`AFTER_COMMIT`)에만 WebSocket·FCM으로 전송해, 롤백된 데이터가 전달되지 않게 함
+- 푸시 실패가 거래 처리에 영향을 주지 않도록 분리하고, 만료된 기기 토큰은 별도 트랜잭션에서 자동 정리
+- 전달 예정 시각이 지난 예약 건은 스케줄러가 찾아 수령 확인 알림을 한 번만 발송
 
-## 매칭 상태
+### 5. 서명 URL 기반 이미지 업로드
 
-| 상태 | 화면 표시 | 다음으로 넘어가는 조건 |
-|---|---|---|
-| `PENDING` | 응답 대기 | 받은 사람이 수락하면 `TRADING`, 거절하면 `REJECTED` |
-| `TRADING` | 거래중 | 양측이 채팅으로 협의합니다. 기부자가 수량을 예약하면 `RESERVED`, 취소하면 `CANCELED` |
-| `RESERVED` | 예약중 | 기관이 실제 수령 확인하면 `COMPLETED`, 취소하면 `CANCELED` |
-| `COMPLETED` | 전달 완료 | 끝 |
-| `REJECTED` | 거절 | 끝 |
-| `CANCELED` | 취소 | 끝 |
+- 비공개 S3에 서버가 발급한 서명 URL로 직접 업로드·조회하고, DB에는 객체 key만 저장
+- 업로드 후 파일 앞부분 시그니처(JPEG·PNG·WebP)를 검사해 확장자만 바꾼 위장 파일을 거절
+- 채팅 이미지는 S3 이벤트로 Lambda가 WebP 썸네일을 생성
 
-- 수락하면 채팅방이 열리지만 수량은 확보되지 않습니다. 거래중에도 수량을 확보하지 않습니다. 기부자가 예약중으로 바꾸는 순간 기부 물품과 필요 물품 양쪽의 `reserved_quantity`에 거래 수량이 더해집니다.
-- 거래중·예약중 거래는 양측 모두 취소할 수 있습니다. 예약중 취소 시 예약 수량을 돌려놓습니다.
-- 수령 확인 시 `reserved_quantity`에서 빼고 `completed_quantity`(필요 물품은 `received_quantity`)로 옮깁니다.
-- 신청 가능 수량은 `quantity - reserved_quantity - completed_quantity`, 추가 필요 수량은 `required_quantity - reserved_quantity - received_quantity`입니다. 필요 물품의 수령 수량이 필요 수량을 채우면 모집을 종료합니다.
-- 기관은 필요 수량을 다 받기 전에 모집을 직접 종료할 수 있습니다. 응답 대기 중인 기부자 제안은 거절되고(거절 알림), 기관이 보낸 요청은 철회됩니다. 거래중·예약중 거래는 그대로이며 종료 뒤에도 예약·수령 확인까지 진행할 수 있습니다. 직접 종료한 물품은 예약이 취소돼도 다시 열리지 않습니다.
-- 예약중 거래의 당사자 누구나 채팅에서 합의한 전달 방법·일정·장소를 저장·변경할 수 있습니다. 저장할 때마다 확정 당시 내용을 담은 전달 약속 카드가 채팅에 생성됩니다.
+---
 
-<br>
+## 🛠 기술 스택
 
-## 프로젝트 구조
+| 구분 | 기술 |
+| --- | --- |
+| Backend | Java 21, Spring Boot 4.1.1, Spring MVC, Gradle |
+| Data | Spring Data JPA (Hibernate), MySQL 8.4, Caffeine |
+| Security | Spring Security, JWT (OAuth2 Resource Server) |
+| Realtime | Spring WebSocket, STOMP |
+| External | 국세청 사업자등록정보 진위확인 API, 카카오 로컬 API, Gmail SMTP, Firebase Cloud Messaging |
+| Storage | Amazon S3 (Presigned URL), AWS Lambda (채팅 썸네일) |
+| API Docs | Swagger UI, springdoc-openapi |
+| Test | JUnit 5, Spring Boot Test, Spring Security Test |
+| Infra | AWS EC2, RDS, S3, Lambda, Docker, Docker Hub, Nginx, Let's Encrypt, GitHub Actions |
 
-도메인별로 패키지를 나누고, 각 도메인 안에 `controller / dto / entity / repository / service`를 둡니다. 여러 도메인이 같이 쓰는 설정과 외부 연동은 `global`에 모읍니다.
+---
 
-```
+## 🏗 시스템 아키텍처
+
+<img width="100%" alt="IT:SSUM 인프라 아키텍처" src="docs/images/architecture/architecture.png" />
+
+---
+
+## 🗃 ERD
+
+<img width="100%" alt="IT:SSUM ERD" src="docs/images/erd/erd.png" />
+
+---
+
+## 📡 API 구성
+
+| 구분 | 주요 경로 | 기능 |
+| --- | --- | --- |
+| 인증 | `/api/auth/**` | 이메일 인증, 기부자·기관 가입, 사업자 확인, 로그인, 로그아웃, 토큰 재발급 |
+| 회원 | `/api/users/me`, `/api/donors/**`, `/api/organizations/**` | 내 정보 조회·수정, 기관 조회, 회원 탈퇴 |
+| 기준 데이터 | `/api/item-categories`, `/api/item-units`, `/api/item-conditions` | 카테고리, 단위, 물품 상태 |
+| 기부 물품 | `/api/donation-items/**`, `/api/donors/me/donation-items` | 등록, 탐색, 상세, 수정, 삭제, 사진 업로드 URL |
+| 필요 물품 | `/api/needed-items/**`, `/api/organizations/me/needed-items` | 등록, 탐색, 상세, 수정, 삭제, 모집 종료, 사진 업로드 URL |
+| 추천 | `/api/donation-items/{donationItemId}/recommendations` | 추천 기관 생성·조회 |
+| 매칭 | `/api/matches/**` | 제안·요청, 목록·상세, 수락·거절·철회, 수량 변경, 예약, 전달 약속, 수령 확인, 취소 |
+| 채팅 | `/api/chat-rooms/**`, `/ws` | 채팅방 목록, 메시지 조회, 읽음 처리, 이미지 업로드 URL, STOMP 메시지 전송 |
+| 알림 | `/api/notifications/**`, `/api/users/me/notification-settings`, `/api/users/me/push-registrations` | 알림 목록, 안 읽은 개수, 읽음 처리, 알림 설정, FCM 기기 등록 |
+
+- Swagger UI (운영): [https://api.itssum.site/swagger-ui.html](https://api.itssum.site/swagger-ui.html)
+- Swagger UI (로컬): [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- WebSocket: 연결 `/ws`, 채팅 구독 `/topic/chat-rooms/{chatRoomId}`, 전송 `/app/chat-rooms/{chatRoomId}/messages`, 알림 구독 `/user/queue/notifications`
+
+---
+
+## 📁 프로젝트 구성
+
+```text
 src/main/java/com/itssum
 ├── domain
-│   ├── auth            # 로그인, 회원가입, 토큰, 비밀번호 재설정
+│   ├── auth            # 로그인, 회원가입, 이메일 인증, 토큰
 │   ├── user            # 회원, 기부자, 복지기관, 약관 동의, 사업자 인증 이력
-│   ├── item            # 기부 물품, 이미지, 필요 물품, 카테고리, 지역
+│   ├── item            # 기부 물품, 필요 물품, 이미지, 카테고리, 지역
 │   ├── recommendation  # 기관 추천 (규칙 기반 점수 계산과 결과)
 │   ├── match           # 매칭
-│   ├── chat            # 채팅방, 참여자, 메시지
+│   ├── chat            # 채팅방, 참여자, 메시지, 채팅 이미지
 │   └── notification    # 알림, 알림 설정, 푸시 등록
-│
-│   (도메인 공통)
-│   ├── controller
-│   ├── dto
-│   │   ├── request
-│   │   └── response
-│   ├── entity
-│   ├── repository
-│   └── service
-│
 └── global
-    ├── common      # BaseTimeEntity, ApiResponse
-    ├── config      # JPA Auditing, Security, WebSocket 설정
-    ├── exception   # ErrorCode, BusinessException, GlobalExceptionHandler
-    ├── security    # JWT 필터, 인증 처리
-    └── infra       # S3, 국세청 사업자 API, 메일, FCM
+    ├── common          # BaseTimeEntity, ApiResponse
+    ├── config          # JPA Auditing, Security, Swagger
+    ├── exception       # ErrorCode, SuccessCode, BusinessException, GlobalExceptionHandler
+    ├── security        # JWT 인증
+    ├── validation      # 공통 검증 어노테이션
+    └── infra           # S3, 국세청 사업자 API, 카카오 로컬, 메일, FCM
 ```
 
-<br>
+---
 
-## 로컬 실행
+## 💻 로컬 실행 방법
 
-MySQL 8.4에 `itssum` 스키마를 먼저 만들어 두고, DB 접속 정보와 JWT 키는 환경변수로 넘깁니다. 비밀값은 커밋하지 않습니다.
+### 요구 사항
+
+- JDK 21
+- MySQL 8.4
+
+### 데이터베이스
+
+```sql
+CREATE DATABASE IF NOT EXISTS itssum
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+```
+
+스키마는 `spring.jpa.hibernate.ddl-auto: update`로 엔티티 기준으로 생성되고, 지역·카테고리 같은 기준 데이터는 `src/main/resources/data.sql`이 서버가 뜰 때 넣습니다.
+
+### 환경변수
+
+최소한 다음 값을 설정합니다. 비밀값은 저장소에 커밋하지 않습니다.
 
 ```bash
 export DB_URL="jdbc:mysql://localhost:3306/itssum?serverTimezone=Asia/Seoul"
-export DB_USERNAME=root
-export DB_PASSWORD=비밀번호
-export JWT_SECRET=32자-이상-무작위-문자열
-# 인증 메일을 실제로 보낼 때만 (Gmail 앱 비밀번호)
-export MAIL_USERNAME=발신용@gmail.com
-export MAIL_PASSWORD=앱비밀번호
-# 기관 사업자 확인을 실제로 호출할 때만 (공공데이터포털 국세청 API 디코딩 키)
-export NTS_SERVICE_KEY=서비스키
-# 기관 주소를 좌표로 바꿀 때만 (카카오 디벨로퍼스 REST API 키). 없으면 좌표 없이 가입된다
-export KAKAO_REST_API_KEY=REST키
+export DB_USERNAME=your_local_user
+export DB_PASSWORD=your_local_password
+export JWT_SECRET=32자_이상_무작위_문자열
+```
 
+외부 연동을 실제로 사용할 때만 다음 값을 추가합니다.
+
+```bash
+export MAIL_USERNAME=발신용@gmail.com      # Gmail SMTP (앱 비밀번호)
+export MAIL_PASSWORD=앱비밀번호
+export NTS_SERVICE_KEY=서비스키            # 국세청 사업자등록정보 진위확인 (공공데이터포털 디코딩 키)
+export KAKAO_REST_API_KEY=REST키           # 카카오 로컬 (주소 → 좌표). 없으면 좌표 없이 저장
+```
+
+IntelliJ에서는 Run Configuration의 Environment variables에 같은 값을 등록합니다.
+
+```bash
 ./gradlew bootRun
 ```
 
-IntelliJ에서 띄울 때는 Run Configuration의 Environment variables에 같은 값을 넣으면 됩니다.
-
-<br>
-
-## 배포
-
-수동 배포는 하지 않습니다. `main`에 머지되면 GitHub Actions가 EC2에 배포합니다.
-
-| 워크플로우 | 실행 시점 | 하는 일 |
-|---|---|---|
-| CI (`.github/workflows/ci.yml`) | `develop`, `main` 대상 PR | MySQL 8.4 컨테이너를 띄워 빌드·테스트 |
-| CD (`.github/workflows/cd.yml`) | `main` push, Actions 탭 수동 실행 | 이미지 빌드 → Docker Hub push → EC2에서 컨테이너 교체 → `/actuator/health` 확인 |
-
-- 운영 주소는 `https://api.itssum.site`입니다. 가비아 DNS의 `api` A 레코드가 EC2 탄력적 IP를 가리킵니다.
-- 인프라는 EC2(Ubuntu 24.04) 한 대와 RDS MySQL 8.4입니다. EC2의 호스트 Nginx가 443(HTTPS)을 받아 `127.0.0.1:8080`으로 프록시하고, 80은 HTTPS로 리다이렉트합니다. 초기 세팅 스크립트는 `docs/infra/ec2-user-data.sh`에 있습니다.
-- 인증서는 Let's Encrypt(`certbot --nginx`)이고, EC2의 `certbot.timer`가 만료 전에 자동으로 갱신합니다. 도메인이 아니라 IP로 HTTP 접속하면 404입니다.
-- FE는 Vercel에 배포하고 `https://itssum.site`, `https://www.itssum.site`로 접속합니다. 가비아 DNS의 `@` A 레코드와 `www` CNAME 레코드가 Vercel을 가리킵니다.
-- 브라우저에서 API와 채팅 WebSocket(`/ws`)을 부를 수 있는 출처는 `application.yml`의 `cors.allowed-origins`입니다. 지금은 로컬 `http://localhost:3000`, `http://localhost:5173`과 배포 FE `https://itssum.site`, `https://www.itssum.site`입니다. 출처를 바꿀 때는 S3 버킷 CORS도 같이 바꿉니다.
-- 비밀값은 GitHub Secrets에만 둡니다. CD가 배포할 때마다 EC2의 `.env`를 새로 만들기 때문에 EC2에서 `.env`를 직접 고치면 다음 배포에서 덮어써집니다.
-- 환경변수를 새로 추가할 때는 GitHub Secrets 등록과 `cd.yml`의 `.env` 블록 수정을 같이 해야 합니다.
-- 이미지 태그는 커밋 SHA입니다. 롤백은 Actions에서 이전 CD 실행을 Re-run 하면 됩니다.
-- FCM 서비스 계정 JSON은 GitHub Secret `FIREBASE_SERVICE_ACCOUNT_BASE64`에 base64 한 줄로 넣습니다. CD가 EC2의 `~/itssum-app/firebase-service-account.json`(권한 600)으로 풀고, compose가 컨테이너의 `/run/secrets/firebase-service-account`에 읽기 전용으로 연결합니다(`FCM_ENABLED=true`, `GOOGLE_APPLICATION_CREDENTIALS`). JSON은 저장소와 이미지에 넣지 않습니다.
-- 서비스 계정 키를 바꿀 때는 새 JSON을 base64로 바꿔 같은 Secret을 덮어쓰고 CD를 다시 실행합니다. PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("<JSON 경로>")) | Set-Clipboard`
-
-필요한 GitHub Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `NTS_SERVICE_KEY`, `KAKAO_REST_API_KEY`, `FIREBASE_SERVICE_ACCOUNT_BASE64`
-
-### 이미지 저장소 (S3)
-
-채팅 이미지와 물품 사진은 비공개 S3 버킷에 올리고, DB에는 객체 key만 저장합니다. 버킷이 비공개라 업로드와 조회 모두 서버가 발급한 서명 URL로 합니다.
-
-| 항목 | 값 |
-|---|---|
-| 버킷 | `itssum-images-6318` (서울 `ap-northeast-2`), 퍼블릭 접근 차단, SSE-S3 |
-| 서명 URL | 업로드(PUT) 10분, 조회(GET) 1시간 |
-| key | `{접두사}/{소유자ID}/{uuid}.{jpg,png,webp}` — 채팅은 `chat/{채팅방ID}/...`, 기부 물품은 `donation-items/{기부자ID}/...`, 필요 물품은 `needed-items/{기관ID}/...` (물품은 사진을 올릴 때 아직 없어서 올린 회원 기준) |
-| CORS | `http://localhost:3000`, `http://localhost:5173`, `https://itssum.site`, `https://www.itssum.site`만 허용 (PUT·GET, 헤더 `Content-Type`·`If-None-Match`, `ETag` 노출) |
-| 서버 권한 | EC2 IAM 역할 `itssum-ec2-s3`: 이 버킷의 객체 읽기·쓰기·삭제 + `ListBucket` |
-
-- 버킷 이름과 리전은 비밀값이 아니라 `application-prod.yml`에 있고, 자격 증명은 EC2 역할에서 받습니다. S3 때문에 추가할 GitHub Secret은 없습니다.
-- 조회 URL은 서명에 쓴 EC2 역할 임시 자격 증명이 먼저 만료되면 1시간보다 일찍 끊길 수 있습니다. FE는 원본(`content`)도 못 불러오면 메시지를 다시 조회해 새 URL을 받습니다.
-- `ListBucket`이 없으면 S3가 없는 객체 조회에 404 대신 403을 돌려줘서, 업로드 확인에서 "아직 안 올라옴"을 구분하지 못합니다.
-- 서버가 Docker 컨테이너 안에서 EC2 메타데이터(IMDSv2)로 자격 증명을 받기 때문에 인스턴스의 메타데이터 홉 제한을 2로 둡니다.
-- 로컬·테스트에는 버킷 설정이 없어 S3 빈이 만들어지지 않고, 채팅 이미지 API는 503(`CHAT_IMAGE_STORAGE_UNAVAILABLE`), 물품 사진 업로드 URL 발급과 사진이 필요한 등록·수정은 503(`ITEM_503`)을 돌려줍니다. 물품 조회는 사진 URL만 비운 채로 됩니다. 이미지 흐름은 운영 서버에서 확인합니다.
-- 이미지 메시지를 보낼 때 업로드된 객체의 크기(10MB 이하)·Content-Type과 파일 앞 12바이트의 형식 시그니처(JPEG·PNG·WebP)를 확인합니다. 선언한 형식과 실제 파일이 다르면 객체를 지우고 거절합니다.
-- 업로드 URL만 받고 메시지·물품에 쓰지 않은 파일과, 물품 수정·삭제로 빠진 사진은 지우지 않고 남겨 둡니다 (파일럿 범위).
-- 썸네일 Lambda는 `chat/`만 처리합니다. 물품 목록에도 원본 서명 URL을 줍니다.
-
-**채팅 썸네일 Lambda**
-
-| 항목 | 값 |
-|---|---|
-| 함수 | `itssum-chat-thumbnail` (Node.js 24.x, x86_64, 1024MB, 30초) |
-| 트리거 | 버킷 PUT 이벤트, 접두사 `chat/` |
-| 결과 | `thumbnails/chat/{채팅방ID}/{uuid}.webp` — 긴 변 400px, WebP 품질 80, 원본보다 키우지 않음 |
-| 실행 역할 | `itssum-thumbnail-lambda`: `chat/*` 읽기, `thumbnails/*` 쓰기, CloudWatch 로그 |
-
-- 이미지 메시지 응답의 `thumbnailUrl`이 이 썸네일의 서명 URL입니다. 서버는 썸네일이 있는지 확인하지 않으므로, FE는 썸네일을 못 불러오면 `content`의 원본 URL로 바꿔 보여줍니다.
-- 결과를 `thumbnails/`에 쓰기 때문에 트리거(`chat/`)가 다시 실행되지 않습니다.
-- 함수 코드는 이 레포에 올리지 않습니다 (`lambda/`는 gitignore). 원본 소스는 담당자 PC의 `lambda/chat-thumbnail/`에만 있고, 배포된 코드가 기준입니다. 다른 사람이 고칠 때는 Lambda 콘솔에서 함수 코드를 .zip으로 내려받아 `lambda/chat-thumbnail/`에 풀고 시작합니다.
-- 코드를 바꾸면 `lambda/chat-thumbnail`에서 sharp를 리눅스용으로 받아 zip으로 묶고 Lambda 콘솔 코드 탭에서 .zip 파일로 올립니다. zip 안의 경로 구분자가 `/`여야 해서 Windows `Compress-Archive` 대신 Python `zipfile`로 묶습니다.
+테스트:
 
 ```bash
-cd lambda/chat-thumbnail
-npm install --omit=dev --os=linux --cpu=x64 --libc=glibc
-python -c "import shutil; shutil.make_archive('../chat-thumbnail', 'zip', '.')"   # lambda/chat-thumbnail.zip
+./gradlew test
 ```
 
-<br>
+S3 설정은 운영 프로필(`application-prod.yml`)에만 있어 로컬에서는 이미지 업로드 API가 503을 반환합니다.
 
-## API 명세
+---
 
-API 명세는 노션에서 관리하고, 실제 요청·응답은 Swagger UI에서 확인합니다.
+## 🔄 CI/CD
 
-- 로컬: http://localhost:8080/swagger-ui.html
-- 배포 서버: https://api.itssum.site/swagger-ui.html
-- 로그인·회원가입 응답의 `accessToken`을 우측 상단 **Authorize**에 넣고 호출합니다. 인증 API(`/api/auth/...`)는 토큰 없이 호출합니다.
+- `develop`·`main` 대상 Pull Request: MySQL 8.4 컨테이너 환경에서 Gradle 빌드·테스트
+- `main` 반영: Docker 이미지 빌드 → Docker Hub Push (태그: 커밋 SHA)
+- SSH로 EC2에 접속해 `.env` 생성 후 Docker Compose로 컨테이너 교체
+- `/actuator/health`로 배포 결과 확인, 롤백은 이전 CD 실행 Re-run
+- 비밀값은 GitHub Secrets로 관리하고, 배포 시 EC2의 `.env`를 새로 생성
 
-- REST: `/api/{리소스 복수형}` 형태, 내 정보는 `/me`로 접근 (예: `GET /api/donors/me/donation-items`)
-- 상태 변경은 `PATCH /api/{리소스}/{id}/{동작}` (예: `PATCH /api/needed-items/{id}/close`)
-- WebSocket 연결 `/ws`, 채팅 구독 `/topic/chat-rooms/{chatRoomId}`, 전송 `/app/chat-rooms/{chatRoomId}/messages`, 알림 구독 `/user/queue/notifications`
+---
 
-<br>
+## 🤝🏻 협업 규칙
 
-## 컨벤션
+- 기본 흐름: `작업 브랜치 → Pull Request → develop → main`
+- 브랜치: `feature/{이슈번호}-{작업}`, `fix/{이슈번호}-{작업}`, `refactor/{이슈번호}-{작업}`, `docs/{이슈번호}-{작업}`, `chore/{이슈번호}-{작업}`
+- 커밋: `타입: 작업 내용 (#이슈번호)` (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `style`)
+- PR은 `develop` 대상, 리뷰어 1명 승인 후 Squash and merge, 머지한 브랜치는 삭제
+- PR에 작업 내용, 관련 이슈, 확인 방법과 테스트 결과 작성
+- 민감 정보는 환경변수로 관리하고 저장소에 커밋하지 않음
 
-### 브랜치
-
-| 브랜치 | 용도 |
-|---|---|
-| `main` | 배포용. 직접 푸시하지 않습니다. |
-| `develop` | 개발 통합 브랜치. 모든 PR은 여기로 올립니다. |
-| `feature/{이슈번호}-{작업}` | 기능 개발 (예: `feature/12-donation-item-create`) |
-| `fix/{이슈번호}-{작업}` | 버그 수정 |
-| `refactor/{이슈번호}-{작업}` | 리팩토링 |
-
-작업 전에 이슈부터 만들고, 이슈 번호로 브랜치를 땁니다.
-
-### 커밋 메시지
-
-```
-타입: 작업 내용 (#이슈번호)
-```
-
-| 타입 | 언제 쓰는지 |
-|---|---|
-| `feat` | 새로운 기능 |
-| `fix` | 버그 수정 |
-| `refactor` | 동작은 그대로 두고 코드 구조만 변경 |
-| `docs` | README, ERD, API 명세 등 문서 |
-| `test` | 테스트 코드 추가·수정 |
-| `chore` | 빌드 설정, 의존성, 설정 파일 |
-| `style` | 포맷팅, import 정리처럼 로직과 상관없는 변경 |
-
-- 제목은 한글로, 50자 이내로 씁니다. 끝에 마침표는 찍지 않습니다.
-- 왜 바꿨는지 설명이 필요하면 한 줄 띄우고 본문에 적습니다.
-- 한 커밋에는 한 가지 작업만 담습니다.
-
-```
-feat: 기부 물품 등록 API 구현 (#12)
-feat: 필요 물품 모집 종료 API 추가 (#18)
-fix: 매칭 취소 시 예약 수량이 복원되지 않던 문제 수정 (#31)
-refactor: 추천 점수 계산을 RecommendationScorer로 분리 (#40)
-docs: ERD v3 반영
-chore: Spring Boot 4.1.1로 버전 변경
-```
-
-### PR
-
-- `develop` 브랜치로 올리고, 제목은 커밋 메시지 형식을 따릅니다.
-- 본문에는 작업 내용, 관련 이슈(`closes #12`), 확인 방법을 적습니다.
-- 리뷰어 1명이 승인하면 Squash and merge로 합칩니다.
-- 머지한 브랜치는 삭제합니다.
-
-### 코드
-
-**DTO**
-- DTO는 전부 `record`로 만들고 도메인의 `dto/request`, `dto/response`에 둡니다.
-- 이름은 `{동작}{대상}Request`, `{대상}{용도}Response` 형식입니다. 예: `CreateDonationItemRequest`, `DonationItemDetailResponse`
-- 요청 값 검증은 record 필드에 `@NotBlank`, `@Positive` 같은 Bean Validation을 붙여서 합니다.
-- 응답 DTO는 `from(Entity)` 정적 메서드로 만들고, 컨트롤러에서 엔티티를 그대로 반환하지 않습니다.
-
-**Entity**
-- setter를 만들지 않고, 기본 생성자는 `protected`로 둡니다.
-- 생성은 `@Builder`나 정적 팩토리 메서드로, 값 변경은 의미 있는 이름의 메서드로 합니다. 예: `match.accept()`, `neededItem.close()`
-- 연관관계는 전부 `FetchType.LAZY`로 걸고, 필요한 경우에만 양방향으로 만듭니다.
-- enum은 `@Enumerated(EnumType.STRING)`으로 저장합니다.
-
-**응답·예외**
-- 모든 응답은 `ApiResponse`로 감싸서 내려줍니다. 성공·실패 모두 `success`, `code`, `message`가 같은 위치에 있습니다.
-  - 성공: `{"success": true, "code": "AUTH_201", "message": "회원가입이 완료되었습니다.", "data": {...}}`
-  - 실패: `{"success": false, "code": "AUTH_401", "message": "..."}` (입력값 검증 실패는 `fieldErrors` 추가)
-- 성공 코드는 `SuccessCode`에 추가하고 `ApiResponse.ok(SuccessCode.XXX, data)`로 반환합니다. HTTP 상태(예: 회원가입 201)는 `SuccessCode`를 따라 자동으로 정해집니다.
-- 예외는 `ErrorCode`에 코드를 추가하고 `BusinessException`으로 던집니다. 처리는 `GlobalExceptionHandler` 한 곳에서 합니다.
-
-<br>
-
-## 팀
-
-| 이름 | 담당 (백엔드)                                   |
-|---|--------------------------------------------|
-| 이창훈 | 인증·인가, 회원, 기부·필요 물품, AI 추천, 기관 사업자 인증, 인프라 |
-| 허건우 | 매칭, 채팅, 알림                                 |
+자세한 규칙은 [`CONTRIBUTING.md`](CONTRIBUTING.md)를, PR 작성 양식은 [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md)를 참고합니다.
