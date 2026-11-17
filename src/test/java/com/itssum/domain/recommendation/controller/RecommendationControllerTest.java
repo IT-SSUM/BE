@@ -32,9 +32,11 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class RecommendationControllerTest {
 
     private static final String PATH = "/api/donation-items/10/recommendations";
+    private static final String REASON = "요청한 물품 분류와 상태에 맞아요. 필요 수량 30권 중 20권까지 지원할 수 있어요. "
+            + "기관까지 직선거리 약 2km예요.";
     private static final OrganizationRecommendationResponse FIRST = new OrganizationRecommendationResponse(1, 2L,
             "구로지역아동센터", "경기 부천시 길주로 210", 7L, "어린이 도서", 30, "권", ConditionGrade.MID,
-            new BigDecimal("96.00"), new BigDecimal("2.00"), null);
+            new BigDecimal("96.00"), new BigDecimal("2.00"), REASON);
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,7 +56,8 @@ class RecommendationControllerTest {
                 .andExpect(jsonPath("$.code").value("RECOMMENDATION_200"))
                 .andExpect(jsonPath("$.data[0].rank").value(1))
                 .andExpect(jsonPath("$.data[0].organizationName").value("구로지역아동센터"))
-                .andExpect(jsonPath("$.data[0].neededItemId").value(7));
+                .andExpect(jsonPath("$.data[0].neededItemId").value(7))
+                .andExpect(jsonPath("$.data[0].reason").value(REASON));
         verify(recommendationService).recommend(1L, 10L);
     }
 
@@ -65,7 +68,8 @@ class RecommendationControllerTest {
         perform(get(PATH), 1L, UserRole.DONOR)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("RECOMMENDATION_200_1"))
-                .andExpect(jsonPath("$.data[0].score").value(96.0));
+                .andExpect(jsonPath("$.data[0].score").value(96.0))
+                .andExpect(jsonPath("$.data[0].reason").value(REASON));
         verify(recommendationService).find(1L, 10L);
     }
 
